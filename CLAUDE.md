@@ -1,7 +1,7 @@
 # CLAUDE.md — Proyecto HbM CUBRO × Schmidt Groupe
 
 > Este archivo es el puente de contexto para Claude Code. Lee esto antes de tocar nada.
-> Última actualización: mayo 2026.
+> Última actualización: julio 2026.
 
 ---
 
@@ -23,7 +23,7 @@ SketchUp → Export CSV → Módulo A (validación) → Módulo B (UI Paso 1)
 ```
 
 **Despliegue:** Streamlit Cloud (plan gratuito → repo público).
-**Repo:** https://github.com/esteban-de-luca/CUBRO-SKP-v2
+**Repo:** https://github.com/luciarodriguez-cpu/CUBRO-OrderHub
 **URL pública:** https://cubro-skp-hmtqcrnptzyqww353nataj.streamlit.app
 
 ---
@@ -32,17 +32,12 @@ SketchUp → Export CSV → Módulo A (validación) → Módulo B (UI Paso 1)
 
 ### Equipo
 
-| Persona | Módulo | Archivo propio | Email |
-|---|---|---|---|
-| Javier | A — Validación CSV | `modulo_a.py` | javier.abad@cubrodesign.com |
-| Esteban | B — Interfaz y selección | `modulo_b.py` + `app.py` | esteban.deluca@cubrodesign.com |
-| Lucía | C — Mapeo y cálculo | `modulo_c.py` | lucia.rodriguez@cubrodesign.com |
+Proyecto unipersonal. **Lucía Rodríguez** (lucia.rodriguez@cubrodesign.com) gestiona la totalidad del repositorio — no hay reparto de módulos por persona ni archivos "propios" de otra gente. Javier y Esteban ya no participan en el proyecto.
 
 ### Reglas de archivos
 
-- Cada persona edita exclusivamente su archivo.
-- `app.py` es responsabilidad de Esteban.
-- Los archivos compartidos (`data/*.yaml`, `data/catalogo.json`) se pueden modificar directamente.
+- No hay restricción de propiedad: Lucía puede modificar cualquier archivo del repo (`modulo_a.py`, `modulo_b.py`, `modulo_c.py`, `app.py`, `data/*.yaml`, `data/catalogo.json`) según lo requiera la tarea.
+- Los archivos `modulo_a.py` / `modulo_b.py` / `modulo_c.py` se mantienen como módulos técnicos separados (validación / UI / mapeo — ver §7 y §10), simplemente ya no están asignados a personas distintas.
 
 ### Herramientas
 
@@ -51,46 +46,35 @@ SketchUp → Export CSV → Módulo A (validación) → Módulo B (UI Paso 1)
 | **GitHub** | Fuente de verdad del código — alimenta Streamlit |
 | **Repositorio local** | Copia local desde donde se edita y se hace push a GitHub |
 
-### Configuración inicial (solo una vez por persona)
+### Configuración inicial
 
 ```bash
-git clone https://github.com/esteban-de-luca/CUBRO-SKP-v2 "C:\Users\TU_USUARIO\AppData\Local\Temp\CUBRO-SKP-v2"
-cd "C:\Users\TU_USUARIO\AppData\Local\Temp\CUBRO-SKP-v2"
-git config user.email "tu@cubrodesign.com"
-git config user.name "TuNombre"
+git clone https://github.com/luciarodriguez-cpu/CUBRO-OrderHub "C:\Users\TU_USUARIO\AppData\Local\Temp\CUBRO-OrderHub"
+cd "C:\Users\TU_USUARIO\AppData\Local\Temp\CUBRO-OrderHub"
+git config user.email "lucia.rodriguez@cubrodesign.com"
+git config user.name "Lucia Rodriguez"
 ```
 
 ### Inicio de cada sesión de trabajo
 
 ```bash
 # Verificar que el clon existe (si no, repetir la configuración inicial)
-ls "C:\Users\TU_USUARIO\AppData\Local\Temp\CUBRO-SKP-v2"
+ls "C:\Users\TU_USUARIO\AppData\Local\Temp\CUBRO-OrderHub"
 
 # Sincronizar con GitHub antes de tocar nada
-cd "C:\Users\TU_USUARIO\AppData\Local\Temp\CUBRO-SKP-v2"
+cd "C:\Users\TU_USUARIO\AppData\Local\Temp\CUBRO-OrderHub"
 git pull origin main
 ```
 
 > ⚠️ La carpeta Temp puede borrarse al reiniciar el ordenador. Si no existe, repetir la configuración inicial.
+>
+> ⚠️ **Nunca inicialices git dentro de la carpeta de Drive del proyecto** (`G:\...\CUBRO-SKP`). Google Drive sincroniza archivos `desktop.ini` dentro de `.git/` (incluso en `refs/` y `objects/`), lo que corrompe el repositorio y rompe `git fetch`/`push`. El repositorio git vive siempre en una carpeta local fuera de Drive (Temp o similar); la carpeta de Drive es solo para consulta de contexto.
 
 ### Publicar cambios
 
 ```bash
-git add modulo_X.py          # solo tu archivo (o los archivos que hayas tocado)
+git add <archivos-tocados>
 git commit -m "descripción del cambio"
-git push origin main
-```
-
-### Conflicto en `app.py`
-
-Si hay un conflicto porque dos personas han editado `app.py` a la vez:
-
-```bash
-git pull origin main
-# Git marca las líneas en conflicto con <<<<<<< y >>>>>>>
-# Abrir el archivo, resolver manualmente y guardar
-git add app.py
-git commit -m "fix: resolver conflicto en app.py"
 git push origin main
 ```
 
@@ -99,9 +83,9 @@ git push origin main
 ```
 Inicio de sesión
       ↓
-git pull  →  sincronizar cambios de compañeros
+git pull  →  sincronizar con GitHub
       ↓
-Editar MI archivo en el repositorio local
+Editar los archivos necesarios en el repositorio local
       ↓
 git add + commit + push  →  GitHub  →  Streamlit se actualiza
 ```
@@ -110,11 +94,11 @@ git add + commit + push  →  GitHub  →  Streamlit se actualiza
 
 ## 3. Quién soy yo en este contexto
 
-Estás interactuando con **Esteban**, responsable del Módulo B. Por tanto:
+Estás interactuando con **Lucía**, única responsable del proyecto. Por tanto:
 
-- Solo se modifica `modulo_b.py` y `app.py` (la orquestación general también es responsabilidad del Módulo B, ya que B es la UI).
-- `modulo_a.py` y `modulo_c.py` no se tocan salvo que sea estrictamente necesario.
+- Se puede modificar cualquier archivo del repo (`modulo_a.py`, `modulo_b.py`, `modulo_c.py`, `app.py`) según lo que pida la tarea — no hay archivos vedados por pertenecer a otra persona.
 - Los archivos de datos (`data/*.yaml`, `data/catalogo.json`) se modifican directamente cuando sea necesario.
+- La separación técnica entre módulos (A valida, B es UI, C mapea — ver §7 y §10) se mantiene como arquitectura del código, aunque ya no responda a un reparto de personas.
 
 ---
 
@@ -148,10 +132,10 @@ streamlit run app.py
 
 ```
 CUBRO-skp/
-├── app.py                      # Orquestación Streamlit (A → B → C → B). Lo gestiona Esteban.
-├── modulo_a.py                 # Javier
-├── modulo_b.py                 # Esteban
-├── modulo_c.py                 # Lucía
+├── app.py                      # Orquestación Streamlit (A → B → C → B)
+├── modulo_a.py                 # Validación CSV
+├── modulo_b.py                 # Interfaz y selección
+├── modulo_c.py                 # Mapeo y cálculo
 ├── data/
 │   ├── catalogo.json           # 121 muebles (descripciones y dimensiones). Generado 10/05/2026.
 │   ├── mapeos_SKP_UI_SG.yaml   # Conversiones CSV → UI → SG (colores, tiradores, rodapié, etc.)
@@ -391,7 +375,7 @@ El Módulo B es "tonto" — recibe datos, los presenta en lenguaje UI, recoge se
 
 ---
 
-## 13. Preferencias de Esteban
+## 13. Preferencias de Lucía
 
 - **Idioma**: español de España. Tecnicismos en inglés permitidos, pero traducidos cuando se introducen.
 - **No generar código sin que se pida explícitamente.** Antes de implementar algo, confirmar.

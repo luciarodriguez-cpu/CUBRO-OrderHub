@@ -3,6 +3,8 @@ app.py — Order Hub CUBRO
 Orquestación Streamlit del flujo A → B → C → B.
 """
 
+import os
+import subprocess
 from datetime import datetime
 
 import pandas as pd
@@ -304,6 +306,35 @@ def _reset_completo() -> None:
     st.session_state.uploader_nonce = nonce
 
 
+def _fecha_ultimo_commit() -> str | None:
+    try:
+        salida = subprocess.run(
+            ["git", "log", "-1", "--format=%cd", "--date=format:%d/%m/%Y"],
+            capture_output=True,
+            text=True,
+            cwd=os.path.dirname(os.path.abspath(__file__)),
+            timeout=5,
+        )
+        fecha = salida.stdout.strip()
+        return fecha or None
+    except Exception:
+        return None
+
+
+def _render_fecha_ultima_actualizacion() -> None:
+    fecha = _fecha_ultimo_commit()
+    if not fecha:
+        return
+    st.markdown(
+        f"""
+        <div style="position: fixed; bottom: 6px; left: 10px; font-size: 0.7rem; color: gray; z-index: 100;">
+            Última actualización: {fecha}
+        </div>
+        """,
+        unsafe_allow_html=True,
+    )
+
+
 def _render_sidebar() -> None:
     with st.sidebar:
         st.image("assets/Logo CUBRO_positivo.png", use_container_width=True)
@@ -377,6 +408,7 @@ def main() -> None:
         initial_sidebar_state="expanded",
     )
     _init_session_state()
+    _render_fecha_ultima_actualizacion()
 
     # modulo_b puede solicitar un reset completo desde la Pantalla 0.
     if st.session_state.pop("_reset_requested", False):
@@ -390,7 +422,10 @@ def main() -> None:
         return
 
     if st.session_state.muebles is None:
-        st.title("Order Hub CUBRO")
+        st.markdown(
+            "<h1 style='color: purple;'>Order Hub CUBRO</h1>",
+            unsafe_allow_html=True,
+        )
         st.info("Sube un CSV exportado desde SketchUp en la barra lateral para comenzar.")
         return
 
