@@ -77,6 +77,7 @@ _OPCIONES_MUEBLE_PATH = pathlib.Path(__file__).parent / "data" / "opciones_muebl
 _REGLAS_PATH = pathlib.Path(__file__).parent / "data" / "reglas.yaml"
 _IMAGENES_PATH = pathlib.Path(__file__).parent / "data" / "imagenes_mueble.yaml"
 _ASSETS_MUEBLES = pathlib.Path(__file__).parent / "assets" / "muebles"
+_ASSETS_CATALOGO_PNG = pathlib.Path(__file__).parent / "assets" / "Catálogo PNG"
 _COLORES_PATH = pathlib.Path(__file__).parent / "data" / "colores_mueble.yaml"
 _ASSETS_COLORES = pathlib.Path(__file__).parent / "assets" / "colores"
 _ASSETS_OPCIONES = pathlib.Path(__file__).parent / "assets" / "opciones"
@@ -196,12 +197,21 @@ _FF12_POSICION_H = {"FF1260", "FF1280", "FF12100"}
 def _imagen_mueble(code: str, posicion: str = "") -> pathlib.Path | None:
     """Devuelve la Path al PNG del mueble si existe, o None.
 
-    Usa longest-prefix-first: el primer prefijo (de mayor a menor longitud)
-    que coincida con el inicio del código de mueble determina la imagen.
-    FF1260/FF1280/FF12100 con posición H usan la imagen de FF1260 (versión de pared).
+    Prioridad:
+    1. Imagen individual en assets/Catálogo PNG/{code}.png (una por mueble real).
+    2. Fallback a assets/muebles/ vía imagenes_mueble.yaml (prefijo, genérica) —
+       cubre elementos decorativos y muebles sin imagen individual todavía.
+
+    Dentro del fallback, usa longest-prefix-first: el primer prefijo (de mayor
+    a menor longitud) que coincida con el inicio del código de mueble determina
+    la imagen. FF1260/FF1280/FF12100 con posición H usan la imagen de FF1260
+    (versión de pared).
     """
     if not code:
         return None
+    ruta_individual = _ASSETS_CATALOGO_PNG / f"{code}.png"
+    if ruta_individual.exists():
+        return ruta_individual
     if code in _FF12_POSICION_H and posicion.upper() == "H":
         ruta = _ASSETS_MUEBLES / "FF1260.png"
         if ruta.exists():
