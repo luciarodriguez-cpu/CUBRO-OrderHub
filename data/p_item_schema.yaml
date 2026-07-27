@@ -23,7 +23,6 @@ p_item_defaults:
   p_width:                  0              # reservado (entero)
   p_height:                 0              # reservado (entero)
   p_depth:                  0              # reservado (entero)
-  p_delivery_date:          __today__      # fecha de generación del pedido (YYYY-MM-DD)
   # p_variant_options:      __computed__   # lista de opciones SG — ver p_variant_option_defaults
   # p_built_in_detail:      __computed__   # solo presente en muebles con electrodoméstico
 
