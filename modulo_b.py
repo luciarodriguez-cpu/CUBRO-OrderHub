@@ -597,7 +597,7 @@ def construir_entrada_modulo_c(
         # FF12V: el alto del pedido es el valor introducido por el usuario (no el de SKP)
         alto_ff12v = str(opcionales.get("alto_ff12v", "")).strip()
         if name == "FF12V" and _alto_ff12v_valido(alto_ff12v):
-            alto_csv_final = f"{alto_ff12v} mm"
+            alto_csv_final = f"{_alto_final_ff12v(alto_ff12v)} mm"
         else:
             alto_csv_final = (mueble.get("Alto") or "").strip()
 
@@ -649,7 +649,7 @@ def construir_entrada_modulo_c(
             "Acabado": _ui_color_frente(mueble.get("Acabado") or "") if name in CODIGOS_TAPETA or name in CODIGOS_RODAPIE or name in CODIGOS_JOUE or name in CODIGOS_ENCIMERA or name in CODIGOS_MUEBLE_ABIERTO else str(mueble.get("Acabado") or "").strip(),
             "Ancho CSV": ancho_csv_j19vv if ancho_csv_j19vv is not None else ("" if reduccion else ancho_raw),
             "Alto CSV": alto_csv_j19vv if alto_csv_j19vv is not None else alto_csv_final,
-            "Alto final tapeta": alto_ff12v if name == "FF12V" and _alto_ff12v_valido(alto_ff12v) else "",
+            "Alto final tapeta": _alto_final_ff12v(alto_ff12v) if name == "FF12V" and _alto_ff12v_valido(alto_ff12v) else "",
             "Sin mecanizado": _bool_str(opcionales.get("op_121", False)),
             "Cubos de basura": _export_op_207(opcionales.get("op_207_opcional", False)),
             "Recorte LED": _bool_str(opcionales.get("op_220", False)),
@@ -1465,9 +1465,22 @@ def _renderizar_opcionales(
 
 
 def _alto_ff12v_valido(valor: str) -> bool:
-    """True si el valor introducido para el alto de FF12V es numéricamente válido."""
+    """True si el valor introducido para el alto de FF12V se puede usar.
+
+    No bloquea por debajo del mínimo de fabricación (600mm) — esos casos se
+    envían igualmente, forzados al mínimo (ver _alto_final_ff12v). Por encima
+    del máximo (2450mm) sigue sin poder integrarse.
+    """
     v = str(valor).strip()
-    return v.isdigit() and _FF12V_ALTO_MIN <= int(v) <= _FF12V_ALTO_MAX
+    return v.isdigit() and int(v) <= _FF12V_ALTO_MAX
+
+
+def _alto_final_ff12v(valor: str) -> str:
+    """Alto final a enviar para FF12V: nunca por debajo del mínimo de fabricación."""
+    v = str(valor).strip()
+    if not v.isdigit():
+        return ""
+    return str(max(int(v), _FF12V_ALTO_MIN))
 
 
 def _joue_tiene_dims_variables(name: str, catalogo: dict) -> bool:
@@ -1715,9 +1728,15 @@ def _control_alto_tapeta_variable(
     if v:
         if not v.isdigit():
             st.caption("⚠️ Introduce solo números enteros (sin decimales ni unidades).")
-        elif not (_FF12V_ALTO_MIN <= int(v) <= _FF12V_ALTO_MAX):
+        elif int(v) > _FF12V_ALTO_MAX:
             st.caption(
-                f"⚠️ El alto debe estar entre {_FF12V_ALTO_MIN} mm y {_FF12V_ALTO_MAX} mm."
+                f"⚠️ El alto no puede superar el máximo de fabricación de {_FF12V_ALTO_MAX} mm — no se puede integrar."
+            )
+        elif int(v) < _FF12V_ALTO_MIN:
+            st.info(
+                f"Las tapetas variables se envían con un alto mínimo de fabricación de "
+                f"{_FF12V_ALTO_MIN} mm. Si el proyecto requiere una medida menor, se "
+                f"tendrá que recortar en obra ({alto_skp_str or f'{v} mm'})."
             )
 
     if nuevo_alto != prev_alto:

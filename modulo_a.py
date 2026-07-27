@@ -673,9 +673,12 @@ def parsear_csv(archivo) -> dict:
                     rango = RANGOS_VARIABLES[familia]
                     if rango["alto_min"] is not None and rango["alto_max"] is not None:
                         _por_gama_code = name_raw in RANGOS_POR_GAMA
+                        # FF12V: no bloquear por debajo del mínimo — se resuelve en el
+                        # Módulo B forzando el alto de fabricación (600mm), sin rechazar
+                        # el CSV. El máximo sigue bloqueando igual que el resto.
                         _fuera = (
                             len_z_mm > rango["alto_max"] or
-                            (not _por_gama_code and len_z_mm < rango["alto_min"])
+                            (not _por_gama_code and name_raw != "FF12V" and len_z_mm < rango["alto_min"])
                         )
                         if _fuera:
                             avisos.append(
