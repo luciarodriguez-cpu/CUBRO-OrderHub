@@ -320,13 +320,22 @@ def _calcular_opciones_mueble(
     if not es_abierto:
         # ── op_200 — Color interior (todos: O excepto frentes sin mueble) ────────
         excl_200 = (op_mueble.get("op_200") or {}).get("excepciones") or []
+        sg_200 = ""
         if code not in excl_200:
             interior = (fila.get("Color interior") or "").strip()
             sg_200   = indices.get("op_200", {}).get(interior, "")
             if sg_200:
                 _sg("op_200", sg_200)
 
-    # ── op_203, op_204 — EXCLUIDAS: SG las calcula en AS400 ─────────────────
+        # ── op_203, op_204 — Tapetas (FF*/FFAL*) únicamente ──────────────────────
+        # Confirmado por Schmidt Groupe en validación VAC Recoletos (jun 2026): para
+        # tapetas, CUBRO SÍ envía op_203 (fijo E14) y op_204 (copia de op_200). Para
+        # el resto de muebles, AS400 sigue calculándolas — no se envían (sin cambios).
+        if code in codigos_tapeta:
+            sg_203 = (forzadas_yaml.get("op_203") or {}).get("sg", "E14")
+            _sg("op_203", sg_203)
+            if sg_200:
+                _sg("op_204", sg_200)
 
     # ── op_206 — Sistema de cierre FSP (F en muebles batientes) ─────────────
     if not es_abierto and code in (op_mueble.get("op_206") or []):

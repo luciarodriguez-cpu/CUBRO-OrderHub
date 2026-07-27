@@ -229,7 +229,10 @@ op_121:
 # op_200 — Color interior del mueble
 # -----------------------------------------------------------------------------
 op_200:
-  todos: O   # Obligatoria en todos excepto frentes sin mueble (POBIF/PO1BIF/PO2BIF) y tapetas
+  todos: O   # Obligatoria en todos excepto frentes sin mueble (POBIF/PO1BIF/PO2BIF)
+  # Tapetas (FF*/FFAL*): SÍ llevan op_200 desde la validación VAC Recoletos (jun 2026),
+  # pero el valor viene de un selector manual por mueble en el Módulo B (no del CSV,
+  # que no transmite color interior para tapetas) — ver modulo_b._control_color_interior_ff.
   excepciones:
     - POBIF4580    # no aplica — frente sin mueble
     - POBIF6080    # no aplica — frente sin mueble
@@ -237,17 +240,6 @@ op_200:
     - PO1BIF6080   # no aplica — frente sin mueble
     - PO2BIF4580   # no aplica — frente sin mueble
     - PO2BIF6080   # no aplica — frente sin mueble
-    - FF12200      # no aplica — tapeta (sin mueble interior)
-    - FF12220      # no aplica — tapeta
-    - FF1260       # no aplica — tapeta
-    - FF1280       # no aplica — tapeta
-    - FF1287       # no aplica — tapeta
-    - FF1290       # no aplica — tapeta
-    - FF12100      # no aplica — tapeta
-    - FF12V        # no aplica — tapeta (alto variable)
-    - FFAL1060     # no aplica — tapeta
-    - FFAL1080     # no aplica — tapeta
-    - FFAL10100    # no aplica — tapeta
     - SOCX10       # no aplica — rodapié (sin mueble interior)
     - SOCX07       # no aplica — rodapié
     - SOC36010     # código SG de salida

@@ -634,7 +634,9 @@ def construir_entrada_modulo_c(
             "Gama del frente": _gama_desde_acabado(mueble.get("Acabado", "")) if name in CODIGOS_JOUE else _ui_gama(mueble.get("D_Gama", "")),
             "Acabado del frente": _ui_color_frente(mueble.get("ColorFrente", "")),
             "Color interior": _normalizar_vacio(
-                _ui_color_interior(mueble.get("Color del interior", ""))
+                str(opcionales.get("color_interior_ff", "")).strip()
+                if name in CODIGOS_TAPETA
+                else _ui_color_interior(mueble.get("Color del interior", ""))
             ),
             "Tirador": tirador_ui,
             "Color tirador": _ui_color_tirador(mueble, tirador_ui),
@@ -1724,6 +1726,36 @@ def _control_alto_tapeta_variable(
         st.rerun()
 
 
+_COLOR_INTERIOR_FF_OPCIONES = ["Blanco", "Gris", "Negro", "Roble"]
+
+
+def _control_color_interior_ff(
+    clave: str, opcionales: dict, selecciones: dict
+) -> None:
+    """Selector obligatorio de color interior para tapetas (FF*/FFAL*).
+
+    Las tapetas no llevan color interior en el CSV de SketchUp, pero Schmidt
+    Groupe exige igualmente op_200 (+ op_204 copia, + op_203 fijo) en su JSON
+    — confirmado en la validación VAC Recoletos (junio 2026). El valor se
+    recoge aquí, por mueble, con las mismas opciones que el resto de la app
+    (nunca los códigos SG 1CC/2CC/3CC/4CC, ver CLAUDE.md §8).
+    """
+    prev = str(opcionales.get("color_interior_ff", "")).strip()
+    opciones = ["", *_COLOR_INTERIOR_FF_OPCIONES]
+    idx = opciones.index(prev) if prev in opciones else 0
+    nuevo = st.selectbox(
+        "Color interior",
+        opciones,
+        index=idx,
+        key=f"color_interior_ff_{clave}",
+        format_func=lambda v: v or "Selecciona...",
+    )
+    if nuevo != prev:
+        opcionales["color_interior_ff"] = nuevo
+        _registrar_edicion(clave, selecciones)
+        st.rerun()
+
+
 def _render_cabecera_global(
     muebles: list[dict],
     selecciones: dict,
@@ -2252,11 +2284,15 @@ def paso_1(muebles: list[dict]) -> None:
                                     clave, meta_126,
                                     estado["opcionales"], selecciones,
                                 )
-                        if name == "FF12V":
+                        if name in CODIGOS_TAPETA:
                             st.divider()
-                            _control_alto_tapeta_variable(
-                                clave, mueble, estado["opcionales"], selecciones
+                            _control_color_interior_ff(
+                                clave, estado["opcionales"], selecciones
                             )
+                            if name == "FF12V":
+                                _control_alto_tapeta_variable(
+                                    clave, mueble, estado["opcionales"], selecciones
+                                )
                     if _joue_tiene_dims_variables(name, catalogo):
                             st.divider()
                             _control_dimensiones_joue_variable(
@@ -2279,11 +2315,15 @@ def paso_1(muebles: list[dict]) -> None:
                                 clave, meta_126,
                                 estado["opcionales"], selecciones,
                             )
-                    if name == "FF12V":
+                    if name in CODIGOS_TAPETA:
                         st.divider()
-                        _control_alto_tapeta_variable(
-                            clave, mueble, estado["opcionales"], selecciones
+                        _control_color_interior_ff(
+                            clave, estado["opcionales"], selecciones
                         )
+                        if name == "FF12V":
+                            _control_alto_tapeta_variable(
+                                clave, mueble, estado["opcionales"], selecciones
+                            )
                     if _joue_tiene_dims_variables(name, catalogo):
                         st.divider()
                         _control_dimensiones_joue_variable(
@@ -2296,12 +2336,15 @@ def paso_1(muebles: list[dict]) -> None:
                         )
 
                 razon_bloqueo = None
-                if name == "FF12V":
-                    if not _alto_ff12v_valido(estado["opcionales"].get("alto_ff12v", "")):
-                        razon_bloqueo = (
-                            "Indica la medida final de alto de la pieza "
-                            "antes de marcar como revisado."
-                        )
+                if name in CODIGOS_TAPETA and not str(estado["opcionales"].get("color_interior_ff", "")).strip():
+                    razon_bloqueo = (
+                        "Selecciona el color interior antes de marcar como revisado."
+                    )
+                elif name == "FF12V" and not _alto_ff12v_valido(estado["opcionales"].get("alto_ff12v", "")):
+                    razon_bloqueo = (
+                        "Indica la medida final de alto de la pieza "
+                        "antes de marcar como revisado."
+                    )
                 elif "op_126" in aplicables:
                     _doble = bool(meta_126.get("doble"))
                     _e1_ok = _op_126_completo(estado["opcionales"].get("op_126"), meta=meta_126)
@@ -2425,6 +2468,9 @@ def _bloque_configuracion_c(entrada: dict) -> list[tuple[str, str]]:
         gama_acabado = " ".join(p for p in (gama, acabado) if p)
         if gama_acabado:
             items.append(("Gama y acabado", gama_acabado))
+        color_int = (entrada.get("Color interior") or "").strip()
+        if color_int:
+            items.append(("Color interior", color_int))
         if posicion_c2 == "H":
             items.append(("Posición", "de pared"))
     elif code in CODIGOS_JOUE:
