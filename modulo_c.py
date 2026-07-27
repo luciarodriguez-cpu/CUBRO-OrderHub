@@ -588,8 +588,11 @@ def calcular_opciones(entrada: list[dict]) -> list[dict]:
         for m, r, al in _electros:
             if r:
                 # Caso A: referencia conocida — Marca + Referencia
+                # p_manufacturer_code: 3 primeras letras de la marca, en mayúsculas
+                # (ej. "Siemens" → "SIE"). La marca completa se sigue mostrando tal
+                # cual en Configuración/PDF — solo el JSON usa el código abreviado.
                 p_built_in_entries.append({
-                    "p_manufacturer_code":   m,
+                    "p_manufacturer_code":   m.strip()[:3].upper(),
                     "p_appliance_reference": r,
                 })
             elif al:
