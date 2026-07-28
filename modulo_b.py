@@ -80,6 +80,9 @@ _APERTURA_UI_POBIF = {
     "centro": "Centro",
 }
 _CODIGOS_APERTURA_POBIF = {"POBIF4580", "POBIF6080"}
+
+# PO1BIF/PO2BIF: apertura Centro fija — no se lee nada del CSV, siempre "Centro".
+_CODIGOS_APERTURA_CENTRO_FIJO = {"PO1BIF4580", "PO1BIF6080", "PO2BIF4580", "PO2BIF6080"}
 _ANCHO_REDUCCION_RAW = "10000 mm"
 _RODAPIE_SIN_PATAS_RAW = "0 mm"
 # Tapeta variable: FF12V acepta altos entre estos límites (ver catálogo alto_variable)
@@ -497,6 +500,8 @@ def _ui_color_tirador(mueble: dict, tirador_ui: str) -> str:
 
 
 def _ui_apertura(value: str, code: str = "") -> str:
+    if code in _CODIGOS_APERTURA_CENTRO_FIJO:
+        return "Centro"  # PO1BIF/PO2BIF: fijo, ignora lo que traiga el CSV
     raw = (value or "").strip()
     tabla = _APERTURA_UI_POBIF if code in _CODIGOS_APERTURA_POBIF else _APERTURA_UI
     return tabla.get(raw.lower(), raw or "—")

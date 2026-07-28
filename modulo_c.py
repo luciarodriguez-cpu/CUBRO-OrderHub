@@ -158,6 +158,14 @@ def _es_true(value) -> bool:
     return str(value).strip() == "True"
 
 
+# PO1BIF/PO2BIF: apertura Centro fija (p_hinge = "C"), no se lee del CSV.
+# POBIF4580/POBIF6080 son distintos — esos SÍ leen apertura del CSV (ver
+# modulo_b._ui_apertura y data/reglas.yaml → apertura.centro).
+_CODIGOS_APERTURA_CENTRO_FIJO: set[str] = {
+    "PO1BIF4580", "PO1BIF6080", "PO2BIF4580", "PO2BIF6080",
+}
+
+
 def _p_hinge_cat(code: str, op_mueble: dict) -> str:
     """Categoría p_hinge del mueble según opciones_mueble.yaml."""
     ph = op_mueble.get("p_hinge") or {}
@@ -518,6 +526,9 @@ def calcular_opciones(entrada: list[dict]) -> list[dict]:
         _codigos_joue_hinge: set[str] = set((op_mueble.get("joues") or {}).get("codigos") or [])
         if code in _codigos_abierto or code in _codigos_joue_hinge:
             p_hinge: str | None = None  # muebles abiertos y joues: sin p_hinge en el JSON
+        elif code in _CODIGOS_APERTURA_CENTRO_FIJO:
+            # PO1BIF/PO2BIF: apertura Centro fija, no se lee del CSV (confirmado 2026).
+            p_hinge = "C"
         else:
             cat_hinge   = _p_hinge_cat(code, op_mueble)
             apertura_ui = (fila.get("Apertura") or "").strip()

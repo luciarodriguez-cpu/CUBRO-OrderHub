@@ -204,6 +204,8 @@ modulo_a:
         p_hinge = "coulissant" (cajones, extraíbles, banco, placa).
         Ver opciones_mueble.yaml para la lista completa.
         POBIF4580/POBIF6080 salieron de este grupo — ver "centro" abajo.
+        PO1BIF/PO2BIF siguen aquí (no leen apertura del CSV), pero además
+        muestran "Centro" fijo y envían p_hinge=C — ver "centro_fijo" abajo.
       comportamiento: >
         Si un mueble sin apertura lleva valor en el campo → se ignora
         silenciosamente y se genera aviso A23a.
@@ -216,10 +218,19 @@ modulo_a:
     centro:
       muebles: ["POBIF4580", "POBIF6080"]
       nota: >
-        Único caso con un tercer valor de apertura además de izquierda/derecha.
-        CSV 1/2/3 → Izquierda/Derecha/Centro → SG G/D/C (no Lift: el "3" aquí
-        no significa lo mismo que en HLVV57). Ver modulo_b._ui_apertura() y
-        mapeos_SKP_UI_SG.yaml → apertura.
+        Único caso con un tercer valor de apertura además de izquierda/derecha,
+        LEÍDO del CSV. 1/2/3 → Izquierda/Derecha/Centro → SG G/D/C (no Lift:
+        el "3"/"horizontal" aquí no significa lo mismo que en HLVV57).
+        Ver modulo_b._ui_apertura() y mapeos_SKP_UI_SG.yaml → apertura.
+
+    centro_fijo:
+      muebles: ["PO1BIF4580", "PO1BIF6080", "PO2BIF4580", "PO2BIF6080"]
+      nota: >
+        Apertura Centro FIJA — no se lee nada del CSV (a diferencia de
+        POBIF4580/POBIF6080 arriba, que sí la leen). Aun así, en Paso 1/Paso 2
+        se muestra "Apertura: Centro" y en el JSON siempre p_hinge="C".
+        Ver modulo_b._ui_apertura() y modulo_c._CODIGOS_APERTURA_CENTRO_FIJO.
+        Confirmado 2026.
 
   # ---------------------------------------------------------------------------
   # Muebles sin color de interior
