@@ -467,3 +467,42 @@ nombres:
 
   # Columnas — Despensa
   "Mueble de despensa, 4 puertas":                                             "ARMOIRE DE RANGEMENT 4 PORTES"
+
+  # -------------------------------------------------------------------------
+  # Añadido 28/07/2026 — confirmado contra HBM_CubroxSchmidt_indice_D.xlsm
+  # (hoja "Ind. C_environnements"). Antes usaban el campo "fr" aproximado de
+  # catalogo.json; esto es la designación oficial de Schmidt Groupe.
+  # -------------------------------------------------------------------------
+
+  # Cierre a techo
+  "Cierre a techo":                                                            "BANDEAU SOUS PLAFOND"
+
+  # Tapetas (FF*/FFAL*)
+  "Tapeta vertical":                                                           "FILEUR FACADE"
+  "Tapeta vertical girada 90°":                                                "FILEUR FACADE"
+  "Tapeta vertical de altura variable":                                        "FILEUR FACADE VARIABLE"
+  "Tapeta de ángulo":                                                          "FILEUR FACADE D'ANGLE"
+
+  # Recubrimientos y paneles traseros
+  "Recubrimiento superior para mueble":                                        "HABILLAGE ETAGERE 19MM"
+  "Panel trasero isla":                                                        "HABILLAGE DOS 19MM"
+
+  # Joues (paneles laterales J19*)
+  "Panel lateral 19mm":                                                        "JOUE EPAISSEUR 19MM"
+  "Panel lateral 19mm variable":                                               "JOUE EPAISSEUR 19MM"
+
+  # Encimeras
+  "Frente de encimera estratificado":                                          "PANNEAU DE CREDENECE STRATIFIE"
+  "Encimera laminado":                                                         "PANNEAU LAMINATE"
+  "Encimera linoleo":                                                          "PANNEAU LINO"
+  "Encimera estratificada 20mm":                                               "PLAN DE TRAVAIL STRATIFIE EPAISSEUR 20MM"
+
+  # Rodapiés (SO*/SOC*) — el Excel usa el mismo término genérico para todos
+  "Rodapié laminado 100 mm":                                                   "SOCLE"
+  "Rodapié linoleo 100 mm":                                                    "SOCLE"
+  "Rodapié laminado 70 mm":                                                    "SOCLE"
+  "Rodapié linoleo 70 mm":                                                     "SOCLE"
+  "Rodapié 100 mm — pieza 1800 mm":                                            "SOCLE"
+  "Rodapié 70 mm — pieza 1800 mm":                                             "SOCLE"
+  "Rodapié 100 mm — pieza 3600 mm":                                            "SOCLE"
+  "Rodapié 70 mm — pieza 3600 mm":                                             "SOCLE"
