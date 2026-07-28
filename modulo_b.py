@@ -67,7 +67,7 @@ _APERTURA_UI = {
     "horizontal": "Lift",
 }
 
-# POBIF4580/POBIF6080 únicamente: el "3" del CSV significa Centro, no Lift.
+# POBIF4580/POBIF6080 únicamente: "3"/"horizontal" del CSV significa Centro, no Lift.
 _APERTURA_UI_POBIF = {
     "1": "Izquierda",
     "i": "Izquierda",
@@ -76,6 +76,7 @@ _APERTURA_UI_POBIF = {
     "d": "Derecha",
     "derecha": "Derecha",
     "3": "Centro",
+    "horizontal": "Centro",
     "centro": "Centro",
 }
 _CODIGOS_APERTURA_POBIF = {"POBIF4580", "POBIF6080"}
