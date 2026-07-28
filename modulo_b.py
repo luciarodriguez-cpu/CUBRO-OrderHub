@@ -66,6 +66,19 @@ _APERTURA_UI = {
     "3": "Lift",
     "horizontal": "Lift",
 }
+
+# POBIF4580/POBIF6080 únicamente: el "3" del CSV significa Centro, no Lift.
+_APERTURA_UI_POBIF = {
+    "1": "Izquierda",
+    "i": "Izquierda",
+    "izquierda": "Izquierda",
+    "2": "Derecha",
+    "d": "Derecha",
+    "derecha": "Derecha",
+    "3": "Centro",
+    "centro": "Centro",
+}
+_CODIGOS_APERTURA_POBIF = {"POBIF4580", "POBIF6080"}
 _ANCHO_REDUCCION_RAW = "10000 mm"
 _RODAPIE_SIN_PATAS_RAW = "0 mm"
 # Tapeta variable: FF12V acepta altos entre estos límites (ver catálogo alto_variable)
@@ -482,9 +495,10 @@ def _ui_color_tirador(mueble: dict, tirador_ui: str) -> str:
     return _ui_color_frente(trasera)
 
 
-def _ui_apertura(value: str) -> str:
+def _ui_apertura(value: str, code: str = "") -> str:
     raw = (value or "").strip()
-    return _APERTURA_UI.get(raw.lower(), raw or "—")
+    tabla = _APERTURA_UI_POBIF if code in _CODIGOS_APERTURA_POBIF else _APERTURA_UI
+    return tabla.get(raw.lower(), raw or "—")
 
 
 def _ui_ancho(mueble: dict) -> str:
@@ -630,7 +644,7 @@ def construir_entrada_modulo_c(
             "Descripción": _designacion(mueble, catalogo),
             "Posición": (mueble.get("posicion") or "").strip(),
             "Summary": (mueble.get("Summary") or "").strip(),  # identificador SKP → p_item_origin_id
-            "Apertura": _normalizar_vacio(_ui_apertura(mueble.get("Apertura", ""))),
+            "Apertura": _normalizar_vacio(_ui_apertura(mueble.get("Apertura", ""), name)),
             "Gama del frente": _gama_desde_acabado(mueble.get("Acabado", "")) if name in CODIGOS_JOUE else _ui_gama(mueble.get("D_Gama", "")),
             "Acabado del frente": _ui_color_frente(mueble.get("ColorFrente", "")),
             "Color interior": _normalizar_vacio(
@@ -954,7 +968,7 @@ def _bloque_informativo(mueble: dict, catalogo: dict) -> None:
             f"**Espesor:** {espesor_str}"
         )
     else:
-        apertura       = _ui_apertura(mueble.get("Apertura", ""))
+        apertura       = _ui_apertura(mueble.get("Apertura", ""), name)
         color_interior = _ui_color_interior(mueble.get("Color del interior", ""))
         st.markdown(
             f"**Apertura:** {apertura}  ·  "
@@ -2444,7 +2458,7 @@ def _bloque_configuracion(mueble: dict) -> list[tuple[str, str]]:
         elif name in CODIGOS_PS_SEGUN_RODAPIE:
             items.append(("Rodapié", "(vacío = suspendido)"))
     else:
-        apertura = _ui_apertura(mueble.get("Apertura", ""))
+        apertura = _ui_apertura(mueble.get("Apertura", ""), name)
         if apertura and apertura != "—":
             items.append(("Apertura", apertura))
         gama = _ui_gama(mueble.get("D_Gama", ""))

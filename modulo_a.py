@@ -155,6 +155,11 @@ CODIGOS_SIN_APERTURA: set[str] = set(
     (_p_hinge.get("nulo") or []) + (_p_hinge.get("coulissant") or [])
 )
 
+# POBIF4580/POBIF6080 únicamente: la apertura admite un tercer valor, Centro
+# (el resto de muebles con apertura solo admiten izquierda/derecha, o lift
+# aparte). Ver modulo_b._ui_apertura() y data/mapeos_SKP_UI_SG.yaml → apertura.
+_CODIGOS_APERTURA_CENTRO: set[str] = {"POBIF4580", "POBIF6080"}
+
 # Muebles que admiten reducción de ancho (op_231)
 CODIGOS_CON_OP231: set[str] = set(_OPCIONES.get("op_231") or [])
 
@@ -830,8 +835,12 @@ def parsear_csv(archivo) -> dict:
                 apertura = None
             elif name_raw in CATALOGO_CODIGOS:
                 if apertura is None:
+                    _opciones_apertura = (
+                        "izquierda, derecha o centro" if name_raw in _CODIGOS_APERTURA_CENTRO
+                        else "izquierda o derecha"
+                    )
                     avisos.append(
-                        "Este mueble requiere apertura (izquierda o derecha) "
+                        f"Este mueble requiere apertura ({_opciones_apertura}) "
                         "pero no tiene ninguna asignada"
                     )
 

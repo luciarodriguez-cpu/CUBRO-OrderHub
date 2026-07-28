@@ -200,9 +200,10 @@ modulo_a:
 
     muebles_sin_apertura:
       criterio: >
-        p_hinge = "nulo" (2 puertas, fachadas, AGM) o
+        p_hinge = "nulo" (2 puertas, fachadas PO1BIF/PO2BIF, AGM) o
         p_hinge = "coulissant" (cajones, extraíbles, banco, placa).
         Ver opciones_mueble.yaml para la lista completa.
+        POBIF4580/POBIF6080 salieron de este grupo — ver "centro" abajo.
       comportamiento: >
         Si un mueble sin apertura lleva valor en el campo → se ignora
         silenciosamente y se genera aviso A23a.
@@ -211,6 +212,14 @@ modulo_a:
     lift:
       muebles: ["HLVV57"]
       valor_normalizado: "horizontal"
+
+    centro:
+      muebles: ["POBIF4580", "POBIF6080"]
+      nota: >
+        Único caso con un tercer valor de apertura además de izquierda/derecha.
+        CSV 1/2/3 → Izquierda/Derecha/Centro → SG G/D/C (no Lift: el "3" aquí
+        no significa lo mismo que en HLVV57). Ver modulo_b._ui_apertura() y
+        mapeos_SKP_UI_SG.yaml → apertura.
 
   # ---------------------------------------------------------------------------
   # Muebles sin color de interior

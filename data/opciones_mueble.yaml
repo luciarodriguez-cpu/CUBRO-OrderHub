@@ -28,6 +28,8 @@
 p_hinge:
 
   lee_csv:
+    - POBIF4580     # apertura propia: 1/2/3 → Izquierda/Derecha/Centro (no Lift, ver _ui_apertura)
+    - POBIF6080     # ídem — confirmado 2026, PO1BIF/PO2BIF NO llevan apertura (siguen en "nulo")
     - B308035
     - B458035
     - B608035
@@ -120,8 +122,6 @@ p_hinge:
     - AVA1P9022035
     - AGM9020057
     - AGM9022057
-    - POBIF4580
-    - POBIF6080
     - PO1BIF4580
     - PO1BIF6080
     - PO2BIF4580

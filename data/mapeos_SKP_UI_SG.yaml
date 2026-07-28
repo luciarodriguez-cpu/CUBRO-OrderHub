@@ -88,6 +88,9 @@ del_csv:
     - { skp: "2",  ui: Derecha,   sg: D }
     - { skp: "D",  ui: Derecha,   sg: D }
     - { skp: "3",  ui: Lift,      sg: L }
+    # Centro: solo para POBIF4580/POBIF6080, donde el CSV "3" significa
+    # Centro (no Lift) — ver _ui_apertura() en modulo_b.py.
+    - { skp: "3 (POBIF)", ui: Centro, sg: C }
 
   # ---------------------------------------------------------------------------
   # D_Gama → Opción 100 — Gama del frente
