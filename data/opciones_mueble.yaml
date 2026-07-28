@@ -586,17 +586,19 @@ op_227:
 op_231:
   - B458035        # P
   - B608035        # P
+  - B908035        # P — añadido 28/07/2026 (2 puertas)
   - B458057        # P
   - B608057        # P
-  - H1306035       # P
+  - B908057        # P — añadido 28/07/2026 (2 puertas)
   - H1456035       # P
   - H1606035       # P
-  - H1308035       # P
+  - H1906035       # P — añadido 28/07/2026 (2 puertas)
   - H1458035       # P
   - H1608035       # P
-  - H13010035      # P
+  - H1908035       # P — añadido 28/07/2026 (2 puertas)
   - H14510035      # P
   - H16010035      # P
+  - H19010035      # P — añadido 28/07/2026 (2 puertas)
   - AVA4520035     # P
   - AVA6020035     # P
   - AVA4520057     # P
@@ -624,6 +626,8 @@ op_231:
   - EOV23060       # P
   - EOAVV37        # P
   # eliminados 21/05/2026, confirmado por Jean Dilmetz el 20/05/2026: B308035, B308057
+  # eliminados 28/07/2026 (misma exclusión de ancho 30cm, se habían quedado sin
+  # quitar por descuido): H1306035, H1308035, H13010035
 
 
 # -----------------------------------------------------------------------------
