@@ -2500,8 +2500,12 @@ def _bloque_configuracion(mueble: dict) -> list[tuple[str, str]]:
     return items
 
 
-def _bloque_configuracion_c(entrada: dict) -> list[tuple[str, str]]:
-    """Pares (etiqueta, valor) del bloque Configuración — Paso 2 (campos de entrada, ya en UI)."""
+def _bloque_configuracion_c(entrada: dict, incluir_codigo_sg: bool = False) -> list[tuple[str, str]]:
+    """Pares (etiqueta, valor) del bloque Configuración — Paso 2 (campos de entrada, ya en UI).
+
+    incluir_codigo_sg: si True, añade el código SG entre paréntesis al color
+    interior (ej. "Blanco (1CC)") — solo se usa en el PDF, no en pantalla.
+    """
     items: list[tuple[str, str]] = []
     code = (entrada.get("Código mueble") or "").strip()
     posicion_c2 = (entrada.get("Posición") or "").strip().upper()
@@ -2524,7 +2528,8 @@ def _bloque_configuracion_c(entrada: dict) -> list[tuple[str, str]]:
             items.append(("Gama y acabado", gama_acabado))
         color_int = (entrada.get("Color interior") or "").strip()
         if color_int:
-            items.append(("Color interior", color_int))
+            sg_200 = (entrada.get("codigos_sg") or {}).get("op_200", "") if incluir_codigo_sg else ""
+            items.append(("Color interior", f"{color_int} ({sg_200})" if sg_200 else color_int))
         if posicion_c2 == "H":
             items.append(("Posición", "de pared"))
     elif code in CODIGOS_JOUE:
@@ -2564,7 +2569,8 @@ def _bloque_configuracion_c(entrada: dict) -> list[tuple[str, str]]:
             items.append(("Gama y color frente", gama_color))
         color_int = (entrada.get("Color interior") or "").strip()
         if color_int:
-            items.append(("Color interior", color_int))
+            sg_200 = (entrada.get("codigos_sg") or {}).get("op_200", "") if incluir_codigo_sg else ""
+            items.append(("Color interior", f"{color_int} ({sg_200})" if sg_200 else color_int))
         tirador = (entrada.get("Tirador") or "").strip()
         if tirador:
             col_t = (entrada.get("Color tirador") or "").strip()
@@ -3031,7 +3037,7 @@ def generar_pdf_resumen(
             pdf.ln(4)
 
         # Pre-calcular secciones para estimar altura antes del salto de página
-        config = _bloque_configuracion_c(entrada)
+        config = _bloque_configuracion_c(entrada, incluir_codigo_sg=True)
         dims   = _bloque_dimensiones_c(entrada, catalogo)
 
         _h_sep    = 10 if (i > 0 and not _inicio_grupo) else 0  # separador entre elementos
