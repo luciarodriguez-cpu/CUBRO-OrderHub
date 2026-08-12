@@ -148,6 +148,22 @@ CODIGOS_BALDA: set[str] = {"ETAS19V20"}
 _CODIGOS_ENC_GRUPO: set[str] = CODIGOS_ENCIMERA - CODIGOS_BALDA
 
 
+def _orden_natural_mueble(mueble: dict) -> tuple:
+    """Orden compartido entre Paso 1, Paso 2, PDF y JSON.
+
+    Por "Summary" en orden natural (M2 antes de M10 antes de M11 — no
+    alfabético puro, que pondría M10 antes de M2), con las encimeras
+    siempre al final. Se aplica aquí (antes de construir la entrada al
+    Módulo C) para que Paso 2/PDF/JSON hereden el mismo orden que ve el
+    usuario en Paso 1, sin tener que reordenar cada pantalla por separado.
+    """
+    return (
+        1 if (mueble.get("Name") or "").strip() in _CODIGOS_ENC_GRUPO else 0,
+        [int(t) if t.isdigit() else t.lower()
+         for t in re.split(r"(\d+)", (mueble.get("Summary") or "").strip())],
+    )
+
+
 def _es_desmontado(code: str) -> bool:
     """True si el mueble siempre se envía desmontado al cliente (aviso informativo)."""
     return code in CODIGOS_DESMONTADO or bool(
@@ -598,9 +614,13 @@ def construir_entrada_modulo_c(
     Las filas SOCX10/SOCX07 (virtual SKP) se omiten; en su lugar se emiten
     filas SOC36010/SOC18010/SOC3607/SOC1807 con el campo "Cantidad" relleno,
     derivadas de los grupos de selección en st.session_state.rodapie_grupos.
+
+    Recorre los muebles en el mismo orden natural que Paso 1 (_orden_natural_
+    mueble: por Summary, encimeras al final) para que Paso 2, PDF y JSON
+    coincidan siempre con lo que el usuario ve en Paso 1.
     """
     entrada: list[dict] = []
-    for mueble in muebles:
+    for mueble in sorted(muebles, key=_orden_natural_mueble):
         # Saltar filas de rodapié SKP — se resuelven abajo como grupos SG
         if (mueble.get("Name") or "").strip() in CODIGOS_RODAPIE_SKP:
             continue
@@ -2245,12 +2265,7 @@ def paso_1(muebles: list[dict]) -> None:
                 and selecciones.get(_identificador_mueble(m), {}).get("check")
             )
         ],
-        # Encimeras siempre al final; dentro de cada grupo orden por Summary
-        key=lambda m: (
-            1 if (m.get("Name") or "").strip() in _CODIGOS_ENC_GRUPO else 0,
-            [int(t) if t.isdigit() else t.lower()
-             for t in re.split(r"(\d+)", (m.get("Summary") or "").strip())],
-        ),
+        key=_orden_natural_mueble,
     )
 
     if a_mostrar:
