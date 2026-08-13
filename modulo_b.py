@@ -91,6 +91,7 @@ _FF12V_ALTO_MAX = 2450
 _CATALOGO_PATH = pathlib.Path(__file__).parent / "data" / "catalogo.json"
 _MAPEOS_SKP_UI_SG_PATH = pathlib.Path(__file__).parent / "data" / "mapeos_SKP_UI_SG.yaml"
 _OPCIONES_MUEBLE_PATH = pathlib.Path(__file__).parent / "data" / "opciones_mueble.yaml"
+_ACCESORIOS_PATH = pathlib.Path(__file__).parent / "data" / "accesorios.yaml"
 _REGLAS_PATH = pathlib.Path(__file__).parent / "data" / "reglas.yaml"
 _IMAGENES_PATH = pathlib.Path(__file__).parent / "data" / "imagenes_mueble.yaml"
 _ASSETS_MUEBLES = pathlib.Path(__file__).parent / "assets" / "muebles"
@@ -146,6 +147,79 @@ CODIGOS_ENCIMERA: set[str] = (
 )
 CODIGOS_BALDA: set[str] = {"ETAS19V20"}
 _CODIGOS_ENC_GRUPO: set[str] = CODIGOS_ENCIMERA - CODIGOS_BALDA
+
+
+# ── Accesorios (cubos, organizadores, alfombrillas, patas, eléctricos) ──────
+# Fuente: data/accesorios.yaml — ver ese archivo para la compatibilidad/cantidad.
+def _cargar_accesorios_raw() -> dict:
+    if not _ACCESORIOS_PATH.exists():
+        return {}
+    with _ACCESORIOS_PATH.open(encoding="utf-8") as f:
+        return yaml.safe_load(f) or {}
+
+
+_ACCESORIOS_RAW = _cargar_accesorios_raw()
+_CONTEOS_EXTRAIBLES: dict[str, dict] = _ACCESORIOS_RAW.get("conteos_extraibles") or {}
+_CODIGOS_OP223_INTERIOR: set[str] = set(_ACCESORIOS_RAW.get("cajon_interior_op223") or [])
+_CUBOS_BASURA_CFG: dict = _ACCESORIOS_RAW.get("cubos_basura") or {}
+_CUBOS_BASURA_APLICA: set[str] = set(_CUBOS_BASURA_CFG.get("aplica_a") or [])
+_CUBOS_BASURA_CODIGOS: list[dict] = _CUBOS_BASURA_CFG.get("codigos") or []
+_ORGANIZADORES_CFG: list[dict] = _ACCESORIOS_RAW.get("organizadores") or []
+_ALFOMBRILLAS_CFG: dict = _ACCESORIOS_RAW.get("alfombrillas") or {}
+_ALFOMBRILLA_AQC_CODIGOS: set[str] = set((_ALFOMBRILLAS_CFG.get("aqc") or {}).get("codigos_mueble") or [])
+_ALFOMBRILLA_AQC_DIM: list[dict] = (_ALFOMBRILLAS_CFG.get("aqc") or {}).get("por_dimension") or []
+_ALFOMBRILLA_GENERICA: list[dict] = _ALFOMBRILLAS_CFG.get("generica") or []
+_ALFOMBRILLA_FONDO_REDUCIDO: dict[str, str] = _ALFOMBRILLAS_CFG.get("fondo_reducido_forzado") or {}
+_PATAS_CFG: dict = _ACCESORIOS_RAW.get("patas_decorativas") or {}
+_PATAS_APLICA: set[str] = set(_PATAS_CFG.get("aplica_a") or [])
+_ELECTRICOS_CFG: dict = _ACCESORIOS_RAW.get("electricos_iluminacion") or {}
+_RODAPIE_PATAS_TRIGGER_RAW = "10 mm"
+
+
+def _conteos_mueble(code: str, opcionales: dict) -> tuple[int, int, int]:
+    """(cajones_clasicos, bloques, cajones_interiores) del mueble.
+
+    Incluye el +1 dinámico de cajón interior si la op_223 está activada en
+    un código elegible (B2B, AFS, AFS2B, AFSMO — ver accesorios.yaml).
+    """
+    base = _CONTEOS_EXTRAIBLES.get(code) or {}
+    clasicos = int(base.get("cajones_clasicos", 0))
+    bloques = int(base.get("bloques", 0))
+    interiores = int(base.get("cajones_interiores", 0))
+    if code in _CODIGOS_OP223_INTERIOR and opcionales.get("op_223"):
+        interiores += 1
+    return clasicos, bloques, interiores
+
+
+def _dimensiones_mueble_cm(code: str, catalogo: dict) -> tuple[int, int]:
+    """(ancho_cm, fondo_cm) del mueble, redondeados desde catalogo.json."""
+    entry = catalogo.get(code) or {}
+    ancho_mm = entry.get("ancho_mm") or 0
+    fondo_mm = entry.get("fondo_mm") or 0
+    return round(ancho_mm / 10), round(fondo_mm / 10)
+
+
+def _codigo_organizador(ancho_cm: int, fondo_cm: int, uso: str, modelo: str) -> str:
+    """modelo: 'rcou' o 'zsettir'. Devuelve "" si no existe esa combinación
+
+    (ancho, fondo, uso) en accesorios.yaml — así se resuelve sin código duro
+    la restricción de ancho 60 del cajón interior fuera de AQC.
+    """
+    for fila in _ORGANIZADORES_CFG:
+        if fila.get("ancho") == ancho_cm and fila.get("fondo") == fondo_cm and fila.get("uso") == uso:
+            return fila.get(modelo, "") or ""
+    return ""
+
+
+def _codigo_alfombrilla(code: str, ancho_cm: int, fondo_cm: int) -> str:
+    """Código de alfombrilla resuelto por ancho/fondo (o forzado en BIBTS)."""
+    if code in _ALFOMBRILLA_FONDO_REDUCIDO:
+        return _ALFOMBRILLA_FONDO_REDUCIDO[code]
+    tabla = _ALFOMBRILLA_AQC_DIM if code in _ALFOMBRILLA_AQC_CODIGOS else _ALFOMBRILLA_GENERICA
+    for fila in tabla:
+        if fila.get("ancho") == ancho_cm and fila.get("fondo") == fondo_cm:
+            return fila.get("sg", "") or ""
+    return ""
 
 
 def _orden_natural_mueble(mueble: dict) -> tuple:
@@ -704,6 +778,12 @@ def construir_entrada_modulo_c(
             "Referencia electro 2": str(op_126_2.get("referencia", "")).strip(),
             "Alto electro 2":       str(op_126_2.get("alto", "")).strip(),
             "Cantidad": "",
+            # Accesorios (cubo POUB, organizador RCOU/ZSETTIR, alfombrilla) — ver data/accesorios.yaml.
+            # No confundir "Cubo basura POUB" con "Cubos de basura" (op_207, feature distinta).
+            "Cubo basura POUB": str(opcionales.get("cubo_basura", "")).strip(),
+            "Organizador RCOU": str(int(opcionales.get("organizador_rcou", 0) or 0)),
+            "Organizador ZSETTIR": str(int(opcionales.get("organizador_zsettir", 0) or 0)),
+            "Alfombrilla accesorio": _bool_str(opcionales.get("alfombrilla", False)),
         }
         entrada.append(fila)
 
@@ -1815,6 +1895,170 @@ def _control_color_interior_ff(
         st.rerun()
 
 
+def _resumen_accesorios_items(
+    code: str, mueble: dict, opcionales: dict, catalogo: dict
+) -> list[dict]:
+    """Lista de accesorios activos para este mueble concreto.
+
+    Cada entrada: {etiqueta, codigo, cantidad, dimensiones, origen}. Se
+    reutiliza tal cual para el bloque en vivo del Paso 1, el resumen del
+    Paso 2 y el PDF (ES/FR) — no se recalcula por separado en cada salida.
+    """
+    items: list[dict] = []
+    clasicos, bloques, interiores = _conteos_mueble(code, opcionales)
+    ancho_cm, fondo_cm = _dimensiones_mueble_cm(code, catalogo)
+    dim_str = f"{ancho_cm}×{fondo_cm} cm" if ancho_cm and fondo_cm else "—"
+
+    cubo = str(opcionales.get("cubo_basura", "")).strip()
+    if cubo:
+        nombre = next((c["nombre"] for c in _CUBOS_BASURA_CODIGOS if c["sg"] == cubo), "Cubo de basura")
+        items.append({"etiqueta": nombre, "codigo": cubo, "cantidad": 1, "dimensiones": "—", "origen": "usuario"})
+
+    n_rcou = int(opcionales.get("organizador_rcou", 0) or 0)
+    n_zsettir = int(opcionales.get("organizador_zsettir", 0) or 0)
+    if n_rcou > 0 or n_zsettir > 0:
+        uso = "interior" if interiores > 0 else "clasico"
+        if n_rcou > 0:
+            cod = _codigo_organizador(ancho_cm, fondo_cm, uso, "rcou")
+            items.append({"etiqueta": "Organizador de cajón", "codigo": cod or "—", "cantidad": n_rcou, "dimensiones": dim_str, "origen": "usuario"})
+        if n_zsettir > 0:
+            cod = _codigo_organizador(ancho_cm, fondo_cm, uso, "zsettir")
+            items.append({"etiqueta": "Organizador de cajón (Set Latitude)", "codigo": cod or "—", "cantidad": n_zsettir, "dimensiones": dim_str, "origen": "usuario"})
+
+    if opcionales.get("alfombrilla"):
+        total = clasicos + bloques + interiores
+        cod = _codigo_alfombrilla(code, ancho_cm, fondo_cm)
+        if total > 0 and cod:
+            items.append({"etiqueta": "Alfombrilla antideslizante", "codigo": cod, "cantidad": total, "dimensiones": dim_str, "origen": "usuario"})
+
+    if code in _PATAS_APLICA and (mueble.get("C_Rodapietext") or "").strip() == _RODAPIE_PATAS_TRIGGER_RAW:
+        items.append({
+            "etiqueta": _PATAS_CFG.get("nombre", "Patas decorativas"),
+            "codigo": _PATAS_CFG.get("sg", "Z5PIED1"),
+            "cantidad": "1 pack (5 patas)",
+            "dimensiones": "—",
+            "origen": "automático (op. 402 = SPI)",
+        })
+
+    if bool(opcionales.get("op_220")):
+        for acc in (_ELECTRICOS_CFG.get("trigger_op220") or []):
+            items.append({"etiqueta": acc["nombre"], "codigo": acc["sg"], "cantidad": 1, "dimensiones": "—", "origen": "automático (opción 220)"})
+    if opcionales.get("op_222", "ninguno") != "ninguno":
+        for acc in (_ELECTRICOS_CFG.get("trigger_op222") or []):
+            items.append({"etiqueta": acc["nombre"], "codigo": acc["sg"], "cantidad": 1, "dimensiones": "—", "origen": "automático (opción 222)"})
+
+    return items
+
+
+def _render_resumen_accesorios(code: str, mueble: dict, opcionales: dict, catalogo: dict) -> None:
+    """Bloque de texto en vivo (CLAUDE.md — sección 6 de instrucciones de accesorios)."""
+    items = _resumen_accesorios_items(code, mueble, opcionales, catalogo)
+    if not items:
+        return
+    st.markdown(f"**Accesorios añadidos a {code}:**")
+    for it in items:
+        cant = it["cantidad"]
+        if isinstance(cant, int):
+            cant_str = f"{cant} ud." if cant == 1 else f"{cant} uds."
+        else:
+            cant_str = str(cant)
+        origen_txt = f" — {it['origen']}" if it["origen"] != "usuario" else ""
+        st.caption(f"• {it['etiqueta']} ({it['codigo']}) — {cant_str} — {it['dimensiones']}{origen_txt}")
+
+
+def _control_accesorios(
+    clave: str, code: str, mueble: dict, opcionales: dict, selecciones: dict, catalogo: dict
+) -> None:
+    """Controles de cubo de basura, organizador de cajón y alfombrilla.
+
+    Patas decorativas y eléctricos de iluminación son 100% automáticos —
+    no llevan control aquí, se calculan en el Módulo C a partir de
+    op_402/op_220/op_222 (ya elegidos por el usuario en sus propios
+    controles). El bloque-resumen en vivo se renderiza al final,
+    incluyendo también esos automáticos.
+    """
+    clasicos, bloques, interiores = _conteos_mueble(code, opcionales)
+    ancho_cm, fondo_cm = _dimensiones_mueble_cm(code, catalogo)
+
+    _divider_hecho = False
+
+    def _asegurar_divider() -> None:
+        nonlocal _divider_hecho
+        if not _divider_hecho:
+            st.divider()
+            _divider_hecho = True
+
+    if code in _CUBOS_BASURA_APLICA:
+        _asegurar_divider()
+        prev_cubo = str(opcionales.get("cubo_basura", "")).strip()
+        marcado = st.checkbox(
+            "Añadir cubo de basura", value=bool(prev_cubo), key=f"cubo_check_{clave}",
+        )
+        nuevo_cubo = prev_cubo
+        if marcado:
+            _cods = [c["sg"] for c in _CUBOS_BASURA_CODIGOS]
+            _lbls = {c["sg"]: c["nombre"] for c in _CUBOS_BASURA_CODIGOS}
+            _idx = _cods.index(prev_cubo) if prev_cubo in _cods else 0
+            nuevo_cubo = st.selectbox(
+                "Tipo de cubo", _cods, index=_idx,
+                format_func=lambda c: _lbls.get(c, c), key=f"cubo_sel_{clave}",
+            )
+        else:
+            nuevo_cubo = ""
+        if nuevo_cubo != prev_cubo:
+            opcionales["cubo_basura"] = nuevo_cubo
+            _registrar_edicion(clave, selecciones)
+            st.rerun()
+
+    max_organizador = clasicos + interiores
+    if max_organizador > 0:
+        uso = "interior" if interiores > 0 else "clasico"
+        cod_rcou = _codigo_organizador(ancho_cm, fondo_cm, uso, "rcou")
+        cod_zsettir = _codigo_organizador(ancho_cm, fondo_cm, uso, "zsettir")
+        if cod_rcou or cod_zsettir:
+            _asegurar_divider()
+            prev_rcou = int(opcionales.get("organizador_rcou", 0) or 0)
+            prev_zsettir = int(opcionales.get("organizador_zsettir", 0) or 0)
+            col_r, col_z = st.columns(2)
+            with col_r:
+                nuevo_rcou = st.number_input(
+                    f"Organizador RCOU ({cod_rcou or '—'})",
+                    min_value=0, max_value=max_organizador,
+                    value=min(prev_rcou, max_organizador), step=1,
+                    key=f"org_rcou_{clave}", disabled=not cod_rcou,
+                )
+            with col_z:
+                nuevo_zsettir = st.number_input(
+                    f"Set Latitude ({cod_zsettir or '—'})",
+                    min_value=0, max_value=max_organizador,
+                    value=min(prev_zsettir, max_organizador), step=1,
+                    key=f"org_zsettir_{clave}", disabled=not cod_zsettir,
+                )
+            if nuevo_rcou + nuevo_zsettir > max_organizador:
+                st.caption(f"⚠️ La suma no puede superar {max_organizador} (máximo de cajones del mueble).")
+            if nuevo_rcou != prev_rcou or nuevo_zsettir != prev_zsettir:
+                opcionales["organizador_rcou"] = nuevo_rcou
+                opcionales["organizador_zsettir"] = nuevo_zsettir
+                _registrar_edicion(clave, selecciones)
+                st.rerun()
+
+    total_extraibles = clasicos + bloques + interiores
+    if total_extraibles > 0:
+        _asegurar_divider()
+        prev_alf = bool(opcionales.get("alfombrilla", False))
+        nuevo_alf = st.checkbox(
+            "Añadir alfombrillas antideslizantes", value=prev_alf, key=f"alfombrilla_{clave}",
+        )
+        if nuevo_alf != prev_alf:
+            opcionales["alfombrilla"] = nuevo_alf
+            _registrar_edicion(clave, selecciones)
+            st.rerun()
+
+    if _resumen_accesorios_items(code, mueble, opcionales, catalogo):
+        _asegurar_divider()
+    _render_resumen_accesorios(code, mueble, opcionales, catalogo)
+
+
 def _render_cabecera_global(
     muebles: list[dict],
     selecciones: dict,
@@ -2347,6 +2591,9 @@ def paso_1(muebles: list[dict]) -> None:
                                 _control_alto_tapeta_variable(
                                     clave, mueble, estado["opcionales"], selecciones
                                 )
+                        _control_accesorios(
+                            clave, name, mueble, estado["opcionales"], selecciones, catalogo
+                        )
                     if _joue_tiene_dims_variables(name, catalogo):
                             st.divider()
                             _control_dimensiones_joue_variable(
@@ -2378,6 +2625,9 @@ def paso_1(muebles: list[dict]) -> None:
                             _control_alto_tapeta_variable(
                                 clave, mueble, estado["opcionales"], selecciones
                             )
+                    _control_accesorios(
+                        clave, name, mueble, estado["opcionales"], selecciones, catalogo
+                    )
                     if _joue_tiene_dims_variables(name, catalogo):
                         st.divider()
                         _control_dimensiones_joue_variable(
@@ -2418,6 +2668,16 @@ def paso_1(muebles: list[dict]) -> None:
                                 "Selecciona el tipo de almacenamiento "
                                 "antes de marcar como revisado."
                             )
+                else:
+                    _clas, _blo, _inte = _conteos_mueble(name, estado["opcionales"])
+                    _max_org = _clas + _inte
+                    _n_rcou = int(estado["opcionales"].get("organizador_rcou", 0) or 0)
+                    _n_zsettir = int(estado["opcionales"].get("organizador_zsettir", 0) or 0)
+                    if _max_org > 0 and (_n_rcou + _n_zsettir) > _max_org:
+                        razon_bloqueo = (
+                            "La suma de organizadores de cajón supera el máximo "
+                            "disponible para este mueble — ajústalo antes de marcar como revisado."
+                        )
 
                 st.divider()
                 _check_mueble(clave, selecciones, razon_bloqueo=razon_bloqueo)
@@ -2787,6 +3047,22 @@ def _render_card_resumen(entrada: dict, catalogo: dict) -> None:
                     if marca_2:
                         _linea_electro(marca_2, ref_2, alto_e_2, "Electrodoméstico 2")
 
+        _mueble_like_acc = {"C_Rodapietext": entrada.get("Rodapié", "")}
+        _opcionales_like_acc = {
+            "cubo_basura": entrada.get("Cubo basura POUB", ""),
+            "organizador_rcou": entrada.get("Organizador RCOU", "0"),
+            "organizador_zsettir": entrada.get("Organizador ZSETTIR", "0"),
+            "alfombrilla": (entrada.get("Alfombrilla accesorio") == "True"),
+            "op_220": (entrada.get("Recorte LED") == "True"),
+            "op_222": (
+                "derecha" if entrada.get("Sensor para mando LED") == "Derecha"
+                else "izquierda" if entrada.get("Sensor para mando LED") == "Izquierda"
+                else "ninguno"
+            ),
+            "op_223": (entrada.get("Cajón interior") == "True"),
+        }
+        _render_resumen_accesorios(code, _mueble_like_acc, _opcionales_like_acc, catalogo)
+
         # Espaciador para dar margen inferior igual al superior dentro del borde
         st.markdown('<div style="margin-bottom:8px"></div>', unsafe_allow_html=True)
 
@@ -2998,6 +3274,9 @@ def generar_pdf_resumen(
     pdf.add_page()
 
     # Ordenar en grupos: normales → encimeras → rodapiés
+    # Las filas de accesorio (es_accesorio=True) se muestran dentro de la card
+    # de su mueble padre (ver _resumen_accesorios_items), no como card propia.
+    pedido = [e for e in pedido if not e.get("es_accesorio")]
     def _pdf_code(e): return (e.get('Código mueble') or '').strip()
     _pdf_norm = [e for e in pedido if _pdf_code(e) not in _CODIGOS_ENC_GRUPO and _pdf_code(e) not in CODIGOS_RODAPIE_SG]
     _pdf_enc  = [e for e in pedido if _pdf_code(e) in _CODIGOS_ENC_GRUPO]
@@ -3253,12 +3532,17 @@ def paso_2(pedido: list[dict] | None) -> None:
         st.error("No hay pedido que revisar. Vuelve al Paso 1.")
         return
 
-    st.success(f"Pedido listo: **{len(pedido)} muebles** configurados.")
+    # Las filas de accesorio (es_accesorio=True) van dentro de la card de su
+    # mueble padre (ver _resumen_accesorios_items), no como card propia — se
+    # excluyen solo de esta lista de renderizado, NUNCA de `pedido` en sí
+    # (que sigue completo para el export JSON/PDF, más abajo en esta función).
+    _pedido_muebles = [e for e in pedido if not e.get("es_accesorio")]
+    st.success(f"Pedido listo: **{len(_pedido_muebles)} muebles** configurados.")
 
     def _code_p2(e): return (e.get("Código mueble") or "").strip()
-    _norm_p2 = [e for e in pedido if _code_p2(e) not in _CODIGOS_ENC_GRUPO and _code_p2(e) not in CODIGOS_RODAPIE_SG]
-    _enc_p2  = [e for e in pedido if _code_p2(e) in _CODIGOS_ENC_GRUPO]
-    _rod_p2  = [e for e in pedido if _code_p2(e) in CODIGOS_RODAPIE_SG]
+    _norm_p2 = [e for e in _pedido_muebles if _code_p2(e) not in _CODIGOS_ENC_GRUPO and _code_p2(e) not in CODIGOS_RODAPIE_SG]
+    _enc_p2  = [e for e in _pedido_muebles if _code_p2(e) in _CODIGOS_ENC_GRUPO]
+    _rod_p2  = [e for e in _pedido_muebles if _code_p2(e) in CODIGOS_RODAPIE_SG]
 
     for item in _norm_p2:
         _render_card_resumen(item, catalogo)

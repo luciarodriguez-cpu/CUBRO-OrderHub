@@ -40,6 +40,7 @@ _OPCIONES_PATH   = _DATA_DIR / "opciones_mueble.yaml"
 _REGLAS_PATH     = _DATA_DIR / "reglas.yaml"
 _AVISOS_PATH     = _DATA_DIR / "avisos.yaml"
 _SCHEMA_PATH     = _DATA_DIR / "p_item_schema.yaml"
+_ACCESORIOS_PATH = _DATA_DIR / "accesorios.yaml"
 
 
 # =============================================================================
@@ -75,6 +76,91 @@ def _cargar_p_item_schema() -> dict:
         return {}
     with _SCHEMA_PATH.open(encoding="utf-8") as f:
         return yaml.safe_load(f) or {}
+
+
+@functools.lru_cache(maxsize=1)
+def _cargar_accesorios() -> dict:
+    """Carga data/accesorios.yaml. Se cachea tras la primera llamada."""
+    if not _ACCESORIOS_PATH.exists():
+        return {}
+    with _ACCESORIOS_PATH.open(encoding="utf-8") as f:
+        return yaml.safe_load(f) or {}
+
+
+def _calcular_accesorios_mueble(fila: dict, code: str, accesorios: dict, catalogo: dict) -> list[dict]:
+    """Devuelve las líneas de accesorio ([{codigo, cantidad}, ...]) para este mueble.
+
+    Manuales (cubo, organizador, alfombrilla): leídos de las columnas que
+    construye modulo_b (ver CLAUDE.md — instrucciones de accesorios §7).
+    Automáticos (patas, eléctricos): derivados de op_402/op_220/op_222, ya
+    presentes en `fila` — no dependen de ningún checkbox.
+    """
+    items: list[dict] = []
+
+    conteos_cfg = accesorios.get("conteos_extraibles") or {}
+    op223_codigos = set(accesorios.get("cajon_interior_op223") or [])
+    base = conteos_cfg.get(code) or {}
+    clasicos   = int(base.get("cajones_clasicos", 0))
+    bloques    = int(base.get("bloques", 0))
+    interiores = int(base.get("cajones_interiores", 0))
+    if code in op223_codigos and _es_true(fila.get("Cajón interior")):
+        interiores += 1
+
+    cat_entry = catalogo.get(code) or {}
+    ancho_cm = round((cat_entry.get("ancho_mm") or 0) / 10)
+    fondo_cm = round((cat_entry.get("fondo_mm") or 0) / 10)
+
+    # ── Cubo de basura ────────────────────────────────────────────────────
+    cubo = (fila.get("Cubo basura POUB") or "").strip()
+    if cubo:
+        items.append({"codigo": cubo, "cantidad": 1})
+
+    # ── Organizadores de cajón ────────────────────────────────────────────
+    n_rcou    = int((fila.get("Organizador RCOU")    or "0").strip() or 0)
+    n_zsettir = int((fila.get("Organizador ZSETTIR") or "0").strip() or 0)
+    if n_rcou > 0 or n_zsettir > 0:
+        uso = "interior" if interiores > 0 else "clasico"
+        for fila_org in (accesorios.get("organizadores") or []):
+            if fila_org.get("ancho") == ancho_cm and fila_org.get("fondo") == fondo_cm and fila_org.get("uso") == uso:
+                if n_rcou > 0 and fila_org.get("rcou"):
+                    items.append({"codigo": fila_org["rcou"], "cantidad": n_rcou})
+                if n_zsettir > 0 and fila_org.get("zsettir"):
+                    items.append({"codigo": fila_org["zsettir"], "cantidad": n_zsettir})
+                break
+
+    # ── Alfombrilla antideslizante ────────────────────────────────────────
+    if _es_true(fila.get("Alfombrilla accesorio")):
+        total = clasicos + bloques + interiores
+        if total > 0:
+            alf_cfg = accesorios.get("alfombrillas") or {}
+            fondo_reducido = alf_cfg.get("fondo_reducido_forzado") or {}
+            cod_alf = fondo_reducido.get(code, "")
+            if not cod_alf:
+                aqc_cfg = alf_cfg.get("aqc") or {}
+                es_aqc = code in set(aqc_cfg.get("codigos_mueble") or [])
+                tabla = aqc_cfg.get("por_dimension") if es_aqc else (alf_cfg.get("generica") or [])
+                for f in (tabla or []):
+                    if f.get("ancho") == ancho_cm and f.get("fondo") == fondo_cm:
+                        cod_alf = f.get("sg", "")
+                        break
+            if cod_alf:
+                items.append({"codigo": cod_alf, "cantidad": total})
+
+    # ── Patas decorativas — automático (op_402 = SPI, rodapié "10 mm") ──────
+    patas_cfg = accesorios.get("patas_decorativas") or {}
+    if code in set(patas_cfg.get("aplica_a") or []) and (fila.get("Rodapié") or "").strip() == "10 mm":
+        items.append({"codigo": patas_cfg.get("sg", "Z5PIED1"), "cantidad": 1})
+
+    # ── Eléctricos de iluminación — automático (op_220 / op_222) ───────────
+    elec_cfg = accesorios.get("electricos_iluminacion") or {}
+    if _es_true(fila.get("Recorte LED")):
+        for acc in (elec_cfg.get("trigger_op220") or []):
+            items.append({"codigo": acc["sg"], "cantidad": 1})
+    if (fila.get("Sensor para mando LED") or "").strip():
+        for acc in (elec_cfg.get("trigger_op222") or []):
+            items.append({"codigo": acc["sg"], "cantidad": 1})
+
+    return items
 
 
 def _p_item_defaults() -> dict:
@@ -504,13 +590,14 @@ def calcular_opciones(entrada: list[dict]) -> list[dict]:
     catalogo, mapeos, op_mueble, reglas = _cargar_datos()
     indices    = _build_indices(mapeos)
     nombres_fr = mapeos.get("nombres") or {}
+    accesorios = _cargar_accesorios()
 
     # Códigos SG de rodapié (SOC36010, SOC18010, SOC3607, SOC1807) — para p_quantity
     _codigos_rodapie_sg: set[str] = set((op_mueble.get("rodapiés") or {}).get("codigos_sg") or [])
 
     resultado: list[dict] = []
 
-    for i, fila in enumerate(entrada):
+    for fila in entrada:
         code = (fila.get("Código mueble") or "").strip()
 
         # ── Designación en francés ────────────────────────────────────────────
@@ -649,7 +736,7 @@ def calcular_opciones(entrada: list[dict]) -> list[dict]:
             _p_depth  = 0
 
         p_item: dict = {
-            "p_ord_cat_code":          str(i + 1),
+            "p_ord_cat_code":          str(len(resultado) + 1),
             "p_item_code":             code,
             "p_item_label":            label_fr,
             "p_item_origin_id":        (fila.get("Summary") or "").strip() or None,
@@ -670,6 +757,35 @@ def calcular_opciones(entrada: list[dict]) -> list[dict]:
             "p_item":               p_item,
             "avisos_c":             avisos,
         })
+
+        # ── Accesorios (cubo, organizador, alfombrilla, patas, eléctricos) ──
+        # Cada uno es una línea de pedido independiente, al mismo nivel que
+        # un mueble — sin apertura ni fastening, dimensiones a 0 (ver
+        # instrucciones de accesorios §7). No se omiten los automáticos por
+        # no venir de un checkbox.
+        for acc in _calcular_accesorios_mueble(fila, code, accesorios, catalogo):
+            acc_p_item = {
+                "p_ord_cat_code":   str(len(resultado) + 1),
+                "p_item_code":      acc["codigo"],
+                "p_item_label":     None,
+                "p_item_origin_id": None,
+                "p_quantity":       acc["cantidad"],
+                "p_hinge":          None,
+                "p_fastening":      None,
+                "p_width":          0,
+                "p_height":         0,
+                "p_depth":          0,
+                "p_variant_options": [],
+            }
+            resultado.append({
+                "Código mueble":        acc["codigo"],
+                "es_accesorio":         True,
+                "mueble_padre":         code,
+                "opciones_adicionales": [],
+                "codigos_sg":           {},
+                "p_item":               acc_p_item,
+                "avisos_c":             [],
+            })
 
     return resultado
 
