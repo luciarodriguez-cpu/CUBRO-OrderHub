@@ -151,12 +151,14 @@ def _calcular_accesorios_mueble(fila: dict, code: str, accesorios: dict, catalog
     if code in set(patas_cfg.get("aplica_a") or []) and (fila.get("Rodapié") or "").strip() == "10 mm":
         items.append({"codigo": patas_cfg.get("sg", "Z5PIED1"), "cantidad": 1})
 
-    # ── Eléctricos de iluminación — automático (op_220 / op_222) ───────────
+    # ── Eléctricos de iluminación — seleccionables por el usuario ──────────
+    # Disponibles solo si la op_220/222 correspondiente está activa, pero ya
+    # no se añaden solos: hace falta el checkbox "LED convertidor"/"LED mando".
     elec_cfg = accesorios.get("electricos_iluminacion") or {}
-    if _es_true(fila.get("Recorte LED")):
+    if _es_true(fila.get("Recorte LED")) and _es_true(fila.get("LED convertidor")):
         for acc in (elec_cfg.get("trigger_op220") or []):
             items.append({"codigo": acc["sg"], "cantidad": 1})
-    if (fila.get("Sensor para mando LED") or "").strip():
+    if (fila.get("Sensor para mando LED") or "").strip() and _es_true(fila.get("LED mando")):
         for acc in (elec_cfg.get("trigger_op222") or []):
             items.append({"codigo": acc["sg"], "cantidad": 1})
 

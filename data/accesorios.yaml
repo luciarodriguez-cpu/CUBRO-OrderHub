@@ -155,11 +155,12 @@ patas_decorativas:
   trigger_op402_valor: SPI
 
 
-# ── Eléctricos de iluminación — 100% automático, dos disparadores independientes ─
-# No se restringe a una familia de mueble: se dispara para CUALQUIER mueble
-# cuyo pedido lleve activa la op_220 y/o la op_222 (hoy solo existen en H1,
-# pero si el catálogo las habilita en otra familia el disparador ya funciona
-# sin tocar código).
+# ── Eléctricos de iluminación — seleccionables por el usuario (checkbox) ────
+# Disponibles solo mientras la op_220/op_222 correspondiente esté activa (hoy
+# solo existen en H1) — no se restringe a una familia de mueble en el código,
+# así que si el catálogo las habilita en otra familia el checkbox ya
+# funciona sin tocar código. Cambiado de automático a seleccionable el
+# 28/07/2026 a petición de Lucía.
 electricos_iluminacion:
   trigger_op220:
     - {sg: ZCONVLEDH30, nombre: "Convertidor LED"}
@@ -175,3 +176,8 @@ traducciones_fr:
   "Alfombrilla antideslizante":             "Tapis antidérapant"
   "Patas decorativas":                     "Pied décoratif"
   "Accesorios eléctricos de iluminación":  "Accessoires électriques d'illumination"
+  # Nombres concretos de los eléctricos (no son categorías, pero coinciden por
+  # texto exacto — ver modulo_b._traducir_categoria_accesorio):
+  "Convertidor LED":                       "Convertisseur LED"
+  "Mando a distancia":                     "Télécommande"
+  # "Alargador 200cm": pendiente — Lucía no tiene aún la traducción oficial.

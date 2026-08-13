@@ -799,6 +799,8 @@ def construir_entrada_modulo_c(
             "Organizador RCOU": str(int(opcionales.get("organizador_rcou", 0) or 0)),
             "Organizador ZSETTIR": str(int(opcionales.get("organizador_zsettir", 0) or 0)),
             "Alfombrilla accesorio": _bool_str(opcionales.get("alfombrilla", False)),
+            "LED convertidor": _bool_str(opcionales.get("led_convertidor", False)),
+            "LED mando": _bool_str(opcionales.get("led_mando", False)),
         }
         entrada.append(fila)
 
@@ -1955,12 +1957,14 @@ def _resumen_accesorios_items(
             "origen": "automático (op. 402 = SPI)",
         })
 
-    if bool(opcionales.get("op_220")):
+    # Eléctricos de iluminación: seleccionables por el usuario (checkbox),
+    # solo disponibles mientras la op_220/op_222 correspondiente esté activa.
+    if bool(opcionales.get("op_220")) and opcionales.get("led_convertidor"):
         for acc in (_ELECTRICOS_CFG.get("trigger_op220") or []):
-            items.append({"etiqueta": acc["nombre"], "codigo": acc["sg"], "cantidad": 1, "dimensiones": "—", "origen": "automático (opción 220)"})
-    if opcionales.get("op_222", "ninguno") != "ninguno":
+            items.append({"etiqueta": acc["nombre"], "codigo": acc["sg"], "cantidad": 1, "dimensiones": "—", "origen": "usuario"})
+    if opcionales.get("op_222", "ninguno") != "ninguno" and opcionales.get("led_mando"):
         for acc in (_ELECTRICOS_CFG.get("trigger_op222") or []):
-            items.append({"etiqueta": acc["nombre"], "codigo": acc["sg"], "cantidad": 1, "dimensiones": "—", "origen": "automático (opción 222)"})
+            items.append({"etiqueta": acc["nombre"], "codigo": acc["sg"], "cantidad": 1, "dimensiones": "—", "origen": "usuario"})
 
     return items
 
@@ -2066,6 +2070,30 @@ def _control_accesorios(
         )
         if nuevo_alf != prev_alf:
             opcionales["alfombrilla"] = nuevo_alf
+            _registrar_edicion(clave, selecciones)
+            st.rerun()
+
+    if bool(opcionales.get("op_220")):
+        _asegurar_divider()
+        prev_led = bool(opcionales.get("led_convertidor", False))
+        nuevo_led = st.checkbox(
+            "Añadir convertidor LED + alargador (ZCONVLEDH30 + ZRAL200)",
+            value=prev_led, key=f"led_convertidor_{clave}",
+        )
+        if nuevo_led != prev_led:
+            opcionales["led_convertidor"] = nuevo_led
+            _registrar_edicion(clave, selecciones)
+            st.rerun()
+
+    if opcionales.get("op_222", "ninguno") != "ninguno":
+        _asegurar_divider()
+        prev_mando = bool(opcionales.get("led_mando", False))
+        nuevo_mando = st.checkbox(
+            "Añadir mando a distancia (ZDTM)",
+            value=prev_mando, key=f"led_mando_{clave}",
+        )
+        if nuevo_mando != prev_mando:
+            opcionales["led_mando"] = nuevo_mando
             _registrar_edicion(clave, selecciones)
             st.rerun()
 
@@ -3075,6 +3103,8 @@ def _render_card_resumen(entrada: dict, catalogo: dict) -> None:
                 else "ninguno"
             ),
             "op_223": (entrada.get("Cajón interior") == "True"),
+            "led_convertidor": (entrada.get("LED convertidor") == "True"),
+            "led_mando": (entrada.get("LED mando") == "True"),
         }
         _render_resumen_accesorios(code, _mueble_like_acc, _opcionales_like_acc, catalogo)
 
@@ -3165,6 +3195,17 @@ def generar_pdf_resumen(
         'Sin patas':                                  'Sans pieds',
         'Reducción de ancho':                         'Reduction de largeur',
         'Ninguna':                                    'Aucune',
+        # ── Etiquetas de opciones adicionales (confirmadas por Lucía) ──────────
+        'Sin mecanizado para tirador':                'Sans mecanisation pour poignee',
+        'Cubos de basura':                            'Poubelle',
+        'Recorte para perfil LED':                    'Decoupe LED',
+        'Sensor para mando LED':                      'Capteur pour telecommande LED',
+        'Sensor para mando LED (derecha)':             'Capteur pour telecommande LED (droite)',
+        'Sensor para mando LED (izquierda)':           'Capteur pour telecommande LED (gauche)',
+        'Mueble de caldera':                          'Cache chaudiere',
+        'Mueble sin encolar':                         'Meuble non colle',
+        # 'Cajón interior': pendiente — traducción dada no es francés válido,
+        # a confirmar con Lucía.
         # ── Pie de página / sistema ───────────────────────────────────────────
         '[auto] = Forzado automaticamente por reglas': '[auto] = Force automatiquement par les regles',
         '(i) Este mueble siempre se entrega desmontado.': '(i) Ce meuble est toujours livre demonte.',
@@ -3528,6 +3569,8 @@ def generar_pdf_resumen(
                 else "ninguno"
             ),
             "op_223": (entrada.get("Cajón interior") == "True"),
+            "led_convertidor": (entrada.get("LED convertidor") == "True"),
+            "led_mando": (entrada.get("LED mando") == "True"),
         }
         _acc_items = _resumen_accesorios_items(code, _mueble_like_acc, _opcionales_like_acc, catalogo)
         if _acc_items:
