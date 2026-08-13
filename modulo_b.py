@@ -3204,8 +3204,7 @@ def generar_pdf_resumen(
         'Sensor para mando LED (izquierda)':           'Capteur pour telecommande LED (gauche)',
         'Mueble de caldera':                          'Cache chaudiere',
         'Mueble sin encolar':                         'Meuble non colle',
-        # 'Cajón interior': pendiente — traducción dada no es francés válido,
-        # a confirmar con Lucía.
+        'Cajón interior':                              "Tiroir a l'anglaise",
         # ── Pie de página / sistema ───────────────────────────────────────────
         '[auto] = Forzado automaticamente por reglas': '[auto] = Force automatiquement par les regles',
         '(i) Este mueble siempre se entrega desmontado.': '(i) Ce meuble est toujours livre demonte.',
