@@ -1,0 +1,177 @@
+# =============================================================================
+# data/accesorios.yaml
+# Accesorios de equipamiento interior — compatibilidad, cantidad y códigos SG.
+# Fuente: compatibilidad_accesorios_muebles_NPD.md + instrucciones_streamlit_logica_accesorios.md
+# (documentos actualizados y cerrados, confirmado julio 2026 — ver "puntos abiertos"
+# en el propio md para el único punto pendiente: restricción de ancho del organizador
+# de cajón interior, resuelta aquí por datos — ver sección "organizadores").
+#
+# Cualquier código de mueble que NO aparezca en "conteos_extraibles" se trata
+# como 0 cajones / 0 bloques / 0 cajones interiores (sin accesorios de
+# organizador/alfombrilla) — no hace falta enumerar los que no llevan ninguno.
+# =============================================================================
+
+
+# ── Conteos fijos por código de mueble ───────────────────────────────────────
+# cajones_clasicos: cajones frontales de 200mm. bloques: extraíbles de 400mm.
+# cajones_interiores: cajones ocultos tras puerta (AQC de serie).
+conteos_extraibles:
+
+  # BB2T — 1 cajón + 2 bloques
+  BB2T458035: {cajones_clasicos: 1, bloques: 2, cajones_interiores: 0}
+  BB2T608035: {cajones_clasicos: 1, bloques: 2, cajones_interiores: 0}
+  BB2T908035: {cajones_clasicos: 1, bloques: 2, cajones_interiores: 0}
+  BB2T458057: {cajones_clasicos: 1, bloques: 2, cajones_interiores: 0}
+  BB2T608057: {cajones_clasicos: 1, bloques: 2, cajones_interiores: 0}
+  BB2T908057: {cajones_clasicos: 1, bloques: 2, cajones_interiores: 0}
+
+  # B2B — 2 bloques, sin cajón clásico (el cajón interior es dinámico, ver op223)
+  B2B458035: {cajones_clasicos: 0, bloques: 2, cajones_interiores: 0}
+  B2B608035: {cajones_clasicos: 0, bloques: 2, cajones_interiores: 0}
+  B2B908035: {cajones_clasicos: 0, bloques: 2, cajones_interiores: 0}
+  B2B458057: {cajones_clasicos: 0, bloques: 2, cajones_interiores: 0}
+  B2B608057: {cajones_clasicos: 0, bloques: 2, cajones_interiores: 0}
+  B2B908057: {cajones_clasicos: 0, bloques: 2, cajones_interiores: 0}
+
+  # BC banco — 1 bloque (BC158057, extraíble estrecho, NO aparece: 0/0/0)
+  BC604035: {cajones_clasicos: 0, bloques: 1, cajones_interiores: 0}
+  BC604057: {cajones_clasicos: 0, bloques: 1, cajones_interiores: 0}
+
+  # BFT — 1 cajón clásico
+  BFT608057: {cajones_clasicos: 1, bloques: 0, cajones_interiores: 0}
+
+  # BCUB2T — 2 cajones + 1 bloque
+  BCUB2T458057: {cajones_clasicos: 2, bloques: 1, cajones_interiores: 0}
+  BCUB2T608057: {cajones_clasicos: 2, bloques: 1, cajones_interiores: 0}
+  BCUB2T908057: {cajones_clasicos: 2, bloques: 1, cajones_interiores: 0}
+
+  # BIBTS — 1 cajón + 1 bloque (placa aspirante, alfombrilla de fondo reducido forzada)
+  BIBTS608057: {cajones_clasicos: 1, bloques: 1, cajones_interiores: 0}
+  BIBTS908057: {cajones_clasicos: 1, bloques: 1, cajones_interiores: 0}
+
+  # BE2B — 2 bloques, sin cajón (no lleva organizador, solo alfombrilla)
+  BE2B608057: {cajones_clasicos: 0, bloques: 2, cajones_interiores: 0}
+  BE2B908057: {cajones_clasicos: 0, bloques: 2, cajones_interiores: 0}
+
+  # BEBTS — 1 cajón + 1 bloque
+  BEBTS608057: {cajones_clasicos: 1, bloques: 1, cajones_interiores: 0}
+  BEBTS908057: {cajones_clasicos: 1, bloques: 1, cajones_interiores: 0}
+
+  # AQC3 / AQC31P — 5 cajones interiores de serie
+  AQC34520057:   {cajones_clasicos: 0, bloques: 0, cajones_interiores: 5}
+  AQC34522057:   {cajones_clasicos: 0, bloques: 0, cajones_interiores: 5}
+  AQC36020057:   {cajones_clasicos: 0, bloques: 0, cajones_interiores: 5}
+  AQC36022057:   {cajones_clasicos: 0, bloques: 0, cajones_interiores: 5}
+  AQC31P4520057: {cajones_clasicos: 0, bloques: 0, cajones_interiores: 5}
+  AQC31P4522057: {cajones_clasicos: 0, bloques: 0, cajones_interiores: 5}
+  AQC31P6020057: {cajones_clasicos: 0, bloques: 0, cajones_interiores: 5}
+  AQC31P6022057: {cajones_clasicos: 0, bloques: 0, cajones_interiores: 5}
+
+  # AFSMOBT — 1 cajón + 1 bloque (cajón visible de serie, NO lleva op_223)
+  AFSMOBT6020057: {cajones_clasicos: 1, bloques: 1, cajones_interiores: 0}
+  AFSMOBT6022057: {cajones_clasicos: 1, bloques: 1, cajones_interiores: 0}
+
+  # AFS / AFS2B / AFSMO — sin nada fijo (el cajón interior es dinámico, ver op223)
+  AFS6020057:    {cajones_clasicos: 0, bloques: 0, cajones_interiores: 0}
+  AFS6022057:    {cajones_clasicos: 0, bloques: 0, cajones_interiores: 0}
+  AFS2B6020057:  {cajones_clasicos: 0, bloques: 0, cajones_interiores: 0}
+  AFS2B6022057:  {cajones_clasicos: 0, bloques: 0, cajones_interiores: 0}
+  AFSMO6020057:  {cajones_clasicos: 0, bloques: 0, cajones_interiores: 0}
+  AFSMO6022057:  {cajones_clasicos: 0, bloques: 0, cajones_interiores: 0}
+
+
+# ── Cajón interior condicional (op. 223) ─────────────────────────────────────
+# Si el pedido activa la op_223 en uno de estos códigos, se suma +1 a
+# cajones_interiores para ESE pedido (dinámico, no está en conteos_extraibles).
+cajon_interior_op223:
+  - B2B458035
+  - B2B608035
+  - B2B908035
+  - B2B458057
+  - B2B608057
+  - B2B908057
+  - AFS6020057
+  - AFS6022057
+  - AFS2B6020057
+  - AFS2B6022057
+  - AFSMO6020057
+  - AFSMO6022057
+
+
+# ── Cubos de basura (checkbox + selector de código, cantidad fija 1) ─────────
+cubos_basura:
+  aplica_a: [BETO458057, BETO608057, BETO908057]
+  codigos:
+    - {sg: POUB2B42G, nombre: "Cubo de basura 2 compartimentos"}
+    - {sg: POUB3B31G, nombre: "Cubo de basura 3 compartimentos"}
+
+
+# ── Organizadores de cajón (RCOU / ZSETTIR) — por ancho×fondo×uso ───────────
+# uso: "clasico" (cajón de 200mm) o "interior" (cajón oculto AQC / op_223).
+# Si no hay fila para una combinación (ancho, fondo, uso), no se ofrece
+# organizador para esa combinación — así resolvemos el punto abierto del
+# ancho 60 en cajón interior sin necesidad de una excepción por código:
+# no existe fila interior a 45×57 ni a 90×57, así que B2B/AFS de esos anchos
+# con op_223 activada no tienen organizador disponible, pero si el pedido
+# tiene 60cm sí lo tienen — todo por datos, no por regla dura.
+organizadores:
+  - {ancho: 45, fondo: 57, uso: clasico,  rcou: RCOU4557,  zsettir: ZSETTIR4557}
+  - {ancho: 60, fondo: 57, uso: clasico,  rcou: RCOU6057,  zsettir: ZSETTIR6057}
+  - {ancho: 90, fondo: 57, uso: clasico,  rcou: RCOU9057,  zsettir: ZSETTIR19057}
+  - {ancho: 60, fondo: 57, uso: interior, rcou: RCOU6057,  zsettir: ZSETTIR6057}
+
+
+# ── Alfombrillas antideslizantes (checkbox único, cantidad = total extraíbles) ─
+alfombrillas:
+  # ZTAAQC — específica de columnas AQC (cajones interiores de serie)
+  aqc:
+    codigos_mueble: [AQC34520057, AQC34522057, AQC31P4520057, AQC31P4522057,
+                      AQC36020057, AQC36022057, AQC31P6020057, AQC31P6022057]
+    por_dimension:
+      - {ancho: 45, fondo: 57, sg: ZTAAQC14557}
+      - {ancho: 60, fondo: 57, sg: ZTAAQC16057}
+
+  # ZTACBT — genérica: cajones clásicos, bloques Y cajón interior de op_223
+  # (todo lo que NO sea columna AQC de serie)
+  generica:
+    - {ancho: 45, fondo: 35, sg: ZTACBT14535}
+    - {ancho: 60, fondo: 35, sg: ZTACBT16035}
+    - {ancho: 90, fondo: 35, sg: ZTACBT19035}
+    - {ancho: 45, fondo: 57, sg: ZTACBT14557}
+    - {ancho: 60, fondo: 57, sg: ZTACBT16057}
+    - {ancho: 90, fondo: 57, sg: ZTACBT19057}
+
+  # Fondo reducido forzado automáticamente — SG lo bloquea, no editable en Streamlit
+  fondo_reducido_forzado:
+    BIBTS608057: ZTACBT16047
+    BIBTS908057: ZTACBT19047
+
+
+# ── Patas decorativas — 100% automático, ligado a op_402 = SPI ───────────────
+patas_decorativas:
+  aplica_a: [BC604035, BC604057]
+  sg: Z5PIED1
+  nombre: "Patas decorativas"
+  trigger_op402_valor: SPI
+
+
+# ── Eléctricos de iluminación — 100% automático, dos disparadores independientes ─
+# No se restringe a una familia de mueble: se dispara para CUALQUIER mueble
+# cuyo pedido lleve activa la op_220 y/o la op_222 (hoy solo existen en H1,
+# pero si el catálogo las habilita en otra familia el disparador ya funciona
+# sin tocar código).
+electricos_iluminacion:
+  trigger_op220:
+    - {sg: ZCONVLEDH30, nombre: "Convertidor LED"}
+    - {sg: ZRAL200,     nombre: "Alargador 200cm"}
+  trigger_op222:
+    - {sg: ZDTM, nombre: "Mando a distancia"}
+
+
+# ── Traducciones FR por categoría (para el PDF) ──────────────────────────────
+traducciones_fr:
+  "Cubo de basura":                        "Poubelle"
+  "Organizador de cajón":                  "Rangecouverts"
+  "Alfombrilla antideslizante":             "Tapis antidérapant"
+  "Patas decorativas":                     "Pied décoratif"
+  "Accesorios eléctricos de iluminación":  "Accessoires électriques d'illumination"
