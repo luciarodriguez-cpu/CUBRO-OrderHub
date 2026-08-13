@@ -173,6 +173,21 @@ _ALFOMBRILLA_FONDO_REDUCIDO: dict[str, str] = _ALFOMBRILLAS_CFG.get("fondo_reduc
 _PATAS_CFG: dict = _ACCESORIOS_RAW.get("patas_decorativas") or {}
 _PATAS_APLICA: set[str] = set(_PATAS_CFG.get("aplica_a") or [])
 _ELECTRICOS_CFG: dict = _ACCESORIOS_RAW.get("electricos_iluminacion") or {}
+_TRADUCCIONES_FR_ACCESORIOS: dict[str, str] = _ACCESORIOS_RAW.get("traducciones_fr") or {}
+
+
+def _traducir_categoria_accesorio(etiqueta: str) -> str:
+    """Traduce la categoría de un accesorio al francés (PDF).
+
+    Preserva cualquier sufijo propio del código (ej. "2 compartimentos",
+    "Set Latitude") que no tiene traducción oficial dada por el cliente.
+    """
+    for es, fr in _TRADUCCIONES_FR_ACCESORIOS.items():
+        if etiqueta == es:
+            return fr
+        if etiqueta.startswith(es + " "):
+            return fr + etiqueta[len(es):]
+    return etiqueta
 _RODAPIE_PATAS_TRIGGER_RAW = "10 mm"
 
 
@@ -3120,6 +3135,8 @@ def generar_pdf_resumen(
         'Configuracion':                              'Configuration',
         'Dimensiones':                                'Dimensions',
         'Opciones adicionales':                       'Options additionnelles',
+        'Accesorios':                                  'Accessoires',
+        '[auto] = Anadido automaticamente':             '[auto] = Ajoute automatiquement',
         'Apertura':                                   'Ouverture',
         'Gama y color frente':                        'Gamme et couleur facade',
         'Gama y acabado':                             'Gamme et finition',
@@ -3496,6 +3513,52 @@ def generar_pdf_resumen(
             pdf.set_text_color(120, 120, 120)
             pdf.cell(0, CELL_H, _safe(_t('Ninguna')), new_x='LMARGIN', new_y='NEXT')
             pdf.set_text_color(0, 0, 0)
+
+        # ── Accesorios (cubo, organizador, alfombrilla, patas, eléctricos) ──
+        _mueble_like_acc = {"C_Rodapietext": entrada.get("Rodapié", "")}
+        _opcionales_like_acc = {
+            "cubo_basura": entrada.get("Cubo basura POUB", ""),
+            "organizador_rcou": entrada.get("Organizador RCOU", "0"),
+            "organizador_zsettir": entrada.get("Organizador ZSETTIR", "0"),
+            "alfombrilla": (entrada.get("Alfombrilla accesorio") == "True"),
+            "op_220": (entrada.get("Recorte LED") == "True"),
+            "op_222": (
+                "derecha" if entrada.get("Sensor para mando LED") == "Derecha"
+                else "izquierda" if entrada.get("Sensor para mando LED") == "Izquierda"
+                else "ninguno"
+            ),
+            "op_223": (entrada.get("Cajón interior") == "True"),
+        }
+        _acc_items = _resumen_accesorios_items(code, _mueble_like_acc, _opcionales_like_acc, catalogo)
+        if _acc_items:
+            _altura_acc = 7 + len(_acc_items) * CELL_H
+            if pdf.h - pdf.b_margin - pdf.get_y() < _altura_acc:
+                pdf.add_page()
+                if img_path:
+                    pdf.set_left_margin(MARGEN + IMG_W + IMG_GAP)
+                    pdf.set_x(MARGEN + IMG_W + IMG_GAP)
+
+            _seccion(pdf, 'Accesorios')
+            _acc_tabla = []
+            for it in _acc_items:
+                _cant = it['cantidad']
+                _cant_str = (
+                    f"{_cant} ud." if _cant == 1
+                    else f"{_cant} uds." if isinstance(_cant, int)
+                    else str(_cant)
+                )
+                _etq = _traducir_categoria_accesorio(it['etiqueta']) if idioma == 'fr' else it['etiqueta']
+                _marcador = ' [auto]' if it['origen'] != 'usuario' else ''
+                _valor = f"{it['codigo']} - {_cant_str} - {it['dimensiones']}{_marcador}"
+                _acc_tabla.append((_etq, _valor))
+            _render_tabla(pdf, _acc_tabla)
+            if any(it['origen'] != 'usuario' for it in _acc_items):
+                pdf.ln(1)
+                pdf.set_font(FONT_MAIN, 'I', 7)
+                pdf.set_text_color(100, 100, 100)
+                pdf.cell(0, 4, _safe(_t('[auto] = Anadido automaticamente')),
+                         new_x='LMARGIN', new_y='NEXT')
+                pdf.set_text_color(0, 0, 0)
 
         avisos_c = entrada.get('avisos_c') or []
         if avisos_c:
