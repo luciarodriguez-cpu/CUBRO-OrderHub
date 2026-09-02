@@ -337,9 +337,13 @@ def _calcular_opciones_mueble(
     # ── Tapetas (FF*/FFAL*): op_101 viene de "Acabado" en lugar de "Acabado del frente" ──
     codigos_tapeta: set[str] = set((op_mueble.get("tapetas") or {}).get("codigos") or [])
 
-    # ── Rodapiés (SOC*): op_401 en lugar de op_100+op_101, viene de "Acabado" ──
+    # ── Rodapiés (SOC*) y rodapiés de pieza única (SO25010LAM/LIN, SO2507LAM/LIN):
+    # op_401 en lugar de op_100+op_101, viene de "Acabado". Confirmado 2026 por
+    # Lucía: los de pieza única deben llevar exactamente el mismo tratamiento
+    # que el resto de rodapiés (mismas opciones, sin p_fastening).
     _rodapies_cfg = op_mueble.get("rodapiés") or {}
-    codigos_rodapie: set[str] = set(_rodapies_cfg.get("codigos") or [])
+    _rodapies_pu_codigos: set[str] = set((op_mueble.get("rodapiés_pieza_unica") or {}).keys())
+    codigos_rodapie: set[str] = set(_rodapies_cfg.get("codigos") or []) | _rodapies_pu_codigos
     codigos_rodapie_sg: set[str] = set(_rodapies_cfg.get("codigos_sg") or [])
     es_rodapie = code in codigos_rodapie
 
@@ -635,7 +639,7 @@ def calcular_opciones(entrada: list[dict]) -> list[dict]:
         # ── p_fastening ───────────────────────────────────────────────────────
         # Tapetas, rodapiés y joues: no se envía. Se omite del JSON vía _sin_nulos.
         _codigos_tapeta_fast: set[str] = set((op_mueble.get("tapetas") or {}).get("codigos") or [])
-        _codigos_rodapie_fast: set[str] = set((op_mueble.get("rodapiés") or {}).get("codigos") or [])
+        _codigos_rodapie_fast: set[str] = codigos_rodapie  # incluye ya pieza única
         _codigos_joue_fast: set[str] = set((op_mueble.get("joues") or {}).get("codigos") or [])
         if code in _codigos_tapeta_fast or code in _codigos_rodapie_fast or code in _codigos_joue_fast:
             p_fastening = None
@@ -728,7 +732,9 @@ def calcular_opciones(entrada: list[dict]) -> list[dict]:
             _p_width  = 0
             _p_height = int(_alto_final) if _alto_final.isdigit() else 0
             _p_depth  = 0
-        elif code in _codigos_enc_dim:
+        elif code in _codigos_enc_dim or code == "BPLA1":
+            # BPLA1: confirmado 2026 por Lucía — el ancho/alto del CSV se
+            # envían invertidos (igual que ya se hacía para encimeras).
             _p_height = int(_ancho_csv) if _ancho_csv.isdigit() else 0
             _p_width  = int(_alto_csv)  if _alto_csv.isdigit()  else 0
             _p_depth  = 0
