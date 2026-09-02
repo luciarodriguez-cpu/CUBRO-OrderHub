@@ -639,7 +639,10 @@ def calcular_opciones(entrada: list[dict]) -> list[dict]:
         # ── p_fastening ───────────────────────────────────────────────────────
         # Tapetas, rodapiés y joues: no se envía. Se omite del JSON vía _sin_nulos.
         _codigos_tapeta_fast: set[str] = set((op_mueble.get("tapetas") or {}).get("codigos") or [])
-        _codigos_rodapie_fast: set[str] = codigos_rodapie  # incluye ya pieza única
+        _codigos_rodapie_fast: set[str] = (
+            set((op_mueble.get("rodapiés") or {}).get("codigos") or [])
+            | set((op_mueble.get("rodapiés_pieza_unica") or {}).keys())
+        )
         _codigos_joue_fast: set[str] = set((op_mueble.get("joues") or {}).get("codigos") or [])
         if code in _codigos_tapeta_fast or code in _codigos_rodapie_fast or code in _codigos_joue_fast:
             p_fastening = None
