@@ -13,7 +13,7 @@
 
 p_item_defaults:
 
-  p_ord_cat_code:           __computed__   # posición en el pedido — string ("1", "2"…)
+  p_ord_cat_code:           __computed__   # posición en el pedido, de 10 en 10 — string ("10", "20"…)
   p_item_code:              __computed__   # código del mueble
   p_item_label:             __computed__   # designación oficial en francés (SG)
   p_item_origin_id:         __computed__   # columna "Summary" del CSV de SketchUp (1ª columna)

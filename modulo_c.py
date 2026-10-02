@@ -747,7 +747,7 @@ def calcular_opciones(entrada: list[dict]) -> list[dict]:
             _p_depth  = 0
 
         p_item: dict = {
-            "p_ord_cat_code":          str(len(resultado) + 1),
+            "p_ord_cat_code":          str((len(resultado) + 1) * 10),
             "p_item_code":             code,
             "p_item_label":            label_fr,
             "p_item_origin_id":        (fila.get("Summary") or "").strip() or None,
@@ -776,7 +776,7 @@ def calcular_opciones(entrada: list[dict]) -> list[dict]:
         # no venir de un checkbox.
         for acc in _calcular_accesorios_mueble(fila, code, accesorios, catalogo):
             acc_p_item = {
-                "p_ord_cat_code":   str(len(resultado) + 1),
+                "p_ord_cat_code":   str((len(resultado) + 1) * 10),
                 "p_item_code":      acc["codigo"],
                 "p_item_label":     None,
                 "p_item_origin_id": None,
