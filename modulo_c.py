@@ -7,7 +7,7 @@ Input:  list[dict] — salida de modulo_b.construir_entrada_modulo_c()
         Acabado del mueble abierto, Summary). Valores en lenguaje UI (CLAUDE.md §9).
 
 Output principal:
-    calcular_opciones(entrada) → list[dict]   para paso_2 de Módulo B
+    calcular_opciones(entrada, electricos=None) → list[dict]   para paso_2 de Módulo B
     generar_json_pedido(resultado) → list[dict]
     generar_excel_revision(resultado) → bytes (.xlsx)
 
@@ -92,8 +92,8 @@ def _calcular_accesorios_mueble(fila: dict, code: str, accesorios: dict, catalog
 
     Manuales (cubo, organizador, alfombrilla): leídos de las columnas que
     construye modulo_b (ver CLAUDE.md — instrucciones de accesorios §7).
-    Automáticos (patas, eléctricos): derivados de op_402/op_220/op_222, ya
-    presentes en `fila` — no dependen de ningún checkbox.
+    Automático (patas): derivado de op_402, ya presente en `fila`.
+    Los eléctricos de iluminación no son por mueble: ver _lineas_electricos.
     """
     items: list[dict] = []
 
@@ -119,50 +119,76 @@ def _calcular_accesorios_mueble(fila: dict, code: str, accesorios: dict, catalog
     n_rcou    = int((fila.get("Organizador RCOU")    or "0").strip() or 0)
     n_zsettir = int((fila.get("Organizador ZSETTIR") or "0").strip() or 0)
     if n_rcou > 0 or n_zsettir > 0:
-        uso = "interior" if interiores > 0 else "clasico"
-        for fila_org in (accesorios.get("organizadores") or []):
-            if fila_org.get("ancho") == ancho_cm and fila_org.get("fondo") == fondo_cm and fila_org.get("uso") == uso:
-                if n_rcou > 0 and fila_org.get("rcou"):
-                    items.append({"codigo": fila_org["rcou"], "cantidad": n_rcou})
-                if n_zsettir > 0 and fila_org.get("zsettir"):
-                    items.append({"codigo": fila_org["zsettir"], "cantidad": n_zsettir})
-                break
+        # Misma búsqueda que modulo_b._codigo_organizador: interior → clasico
+        # → bloque, solo entre los usos que el mueble tiene.
+        usos = [u for u, n in (("interior", interiores), ("clasico", clasicos), ("bloque", bloques)) if n > 0]
+        fila_org = next(
+            (
+                f for uso in usos for f in (accesorios.get("organizadores") or [])
+                if f.get("ancho") == ancho_cm and f.get("fondo") == fondo_cm and f.get("uso") == uso
+            ),
+            None,
+        )
+        if fila_org:
+            if n_rcou > 0 and fila_org.get("rcou"):
+                items.append({"codigo": fila_org["rcou"], "cantidad": n_rcou})
+            if n_zsettir > 0 and fila_org.get("zsettir"):
+                items.append({"codigo": fila_org["zsettir"], "cantidad": n_zsettir})
 
     # ── Alfombrilla antideslizante ────────────────────────────────────────
-    if _es_true(fila.get("Alfombrilla accesorio")):
-        total = clasicos + bloques + interiores
-        if total > 0:
-            alf_cfg = accesorios.get("alfombrillas") or {}
-            fondo_reducido = alf_cfg.get("fondo_reducido_forzado") or {}
-            cod_alf = fondo_reducido.get(code, "")
-            if not cod_alf:
-                aqc_cfg = alf_cfg.get("aqc") or {}
-                es_aqc = code in set(aqc_cfg.get("codigos_mueble") or [])
-                tabla = aqc_cfg.get("por_dimension") if es_aqc else (alf_cfg.get("generica") or [])
-                for f in (tabla or []):
-                    if f.get("ancho") == ancho_cm and f.get("fondo") == fondo_cm:
-                        cod_alf = f.get("sg", "")
-                        break
-            if cod_alf:
-                items.append({"codigo": cod_alf, "cantidad": total})
+    # Cantidad elegida por el usuario (contador), con tope en el total de extraíbles.
+    total = clasicos + bloques + interiores
+    n_alf = min(_a_entero(fila.get("Alfombrilla accesorio")), total)
+    if n_alf > 0:
+        alf_cfg = accesorios.get("alfombrillas") or {}
+        fondo_reducido = alf_cfg.get("fondo_reducido_forzado") or {}
+        cod_alf = fondo_reducido.get(code, "")
+        if not cod_alf:
+            aqc_cfg = alf_cfg.get("aqc") or {}
+            es_aqc = code in set(aqc_cfg.get("codigos_mueble") or [])
+            tabla = aqc_cfg.get("por_dimension") if es_aqc else (alf_cfg.get("generica") or [])
+            for f in (tabla or []):
+                if f.get("ancho") == ancho_cm and f.get("fondo") == fondo_cm:
+                    cod_alf = f.get("sg", "")
+                    break
+        if cod_alf:
+            items.append({"codigo": cod_alf, "cantidad": n_alf})
 
     # ── Patas decorativas — automático (op_402 = SPI, rodapié "10 mm") ──────
     patas_cfg = accesorios.get("patas_decorativas") or {}
     if code in set(patas_cfg.get("aplica_a") or []) and (fila.get("Rodapié") or "").strip() == "10 mm":
         items.append({"codigo": patas_cfg.get("sg", "Z5PIED1"), "cantidad": 1})
 
-    # ── Eléctricos de iluminación — seleccionables por el usuario ──────────
-    # Disponibles solo si la op_220/222 correspondiente está activa, pero ya
-    # no se añaden solos: hace falta el checkbox "LED convertidor"/"LED mando".
-    elec_cfg = accesorios.get("electricos_iluminacion") or {}
-    if _es_true(fila.get("Recorte LED")) and _es_true(fila.get("LED convertidor")):
-        for acc in (elec_cfg.get("trigger_op220") or []):
-            items.append({"codigo": acc["sg"], "cantidad": 1})
-    if (fila.get("Sensor para mando LED") or "").strip() and _es_true(fila.get("LED mando")):
-        for acc in (elec_cfg.get("trigger_op222") or []):
-            items.append({"codigo": acc["sg"], "cantidad": 1})
-
     return items
+
+
+def _a_entero(valor) -> int:
+    """Convierte a int una columna de cantidad ("3", 3, "True", "")."""
+    texto = str(valor or "").strip()
+    if texto == "True":
+        return 1
+    try:
+        return int(float(texto))
+    except ValueError:
+        return 0
+
+
+def _lineas_electricos(electricos: dict | None, accesorios: dict) -> list[dict]:
+    """Líneas eléctricas del pedido ([{codigo, cantidad}]), una por artículo.
+
+    Vienen de la sección global "Accesorios eléctricos" del Paso 1, no de
+    ninguna fila de mueble. Solo artículos configurados en accesorios.yaml y
+    con cantidad > 0, en el orden del YAML.
+    """
+    if not electricos:
+        return []
+    cfg = accesorios.get("electricos_iluminacion") or {}
+    lineas: list[dict] = []
+    for art in (cfg.get("trigger_op220") or []) + (cfg.get("trigger_op222") or []):
+        n = _a_entero(electricos.get(art.get("sg")))
+        if n > 0:
+            lineas.append({"codigo": art["sg"], "cantidad": n})
+    return lineas
 
 
 def _p_item_defaults() -> dict:
@@ -578,11 +604,16 @@ def _calcular_opciones_mueble(
 # Función principal
 # =============================================================================
 
-def calcular_opciones(entrada: list[dict]) -> list[dict]:
+def calcular_opciones(
+    entrada: list[dict], electricos: dict[str, int] | None = None
+) -> list[dict]:
     """
     Módulo C — función principal.
 
     Input:  list[dict] — 23 columnas (CLAUDE.md §9), valores en lenguaje UI.
+            electricos — {código SG → cantidad} de la sección global
+              "Accesorios eléctricos" del Paso 1 (opcional). Se añaden al
+              final como líneas de accesorio sin mueble padre.
     Output: list[dict] — pedido extendido para modulo_b.paso_2():
               · todos los campos originales de entrada
               · opciones_adicionales: list[dict] {etiqueta, valor, origen}
@@ -769,36 +800,45 @@ def calcular_opciones(entrada: list[dict]) -> list[dict]:
             "avisos_c":             avisos,
         })
 
-        # ── Accesorios (cubo, organizador, alfombrilla, patas, eléctricos) ──
+        # ── Accesorios (cubo, organizador, alfombrilla, patas) ──────────────
         # Cada uno es una línea de pedido independiente, al mismo nivel que
         # un mueble — sin apertura ni fastening, dimensiones a 0 (ver
         # instrucciones de accesorios §7). No se omiten los automáticos por
         # no venir de un checkbox.
         for acc in _calcular_accesorios_mueble(fila, code, accesorios, catalogo):
-            acc_p_item = {
-                "p_ord_cat_code":   str((len(resultado) + 1) * 10),
-                "p_item_code":      acc["codigo"],
-                "p_item_label":     None,
-                "p_item_origin_id": None,
-                "p_quantity":       acc["cantidad"],
-                "p_hinge":          None,
-                "p_fastening":      None,
-                "p_width":          0,
-                "p_height":         0,
-                "p_depth":          0,
-                "p_variant_options": [],
-            }
-            resultado.append({
-                "Código mueble":        acc["codigo"],
-                "es_accesorio":         True,
-                "mueble_padre":         code,
-                "opciones_adicionales": [],
-                "codigos_sg":           {},
-                "p_item":               acc_p_item,
-                "avisos_c":             [],
-            })
+            resultado.append(_linea_accesorio(acc, code, len(resultado)))
+
+    # ── Eléctricos de iluminación — una línea por artículo y pedido ─────────
+    # No cuelgan de ningún mueble (mueble_padre = None).
+    for acc in _lineas_electricos(electricos, accesorios):
+        resultado.append(_linea_accesorio(acc, None, len(resultado)))
 
     return resultado
+
+
+def _linea_accesorio(acc: dict, mueble_padre: str | None, n_previas: int) -> dict:
+    """Línea de pedido de un accesorio ({codigo, cantidad}) con su p_item."""
+    return {
+        "Código mueble":        acc["codigo"],
+        "es_accesorio":         True,
+        "mueble_padre":         mueble_padre,
+        "opciones_adicionales": [],
+        "codigos_sg":           {},
+        "p_item": {
+            "p_ord_cat_code":   str((n_previas + 1) * 10),
+            "p_item_code":      acc["codigo"],
+            "p_item_label":     None,
+            "p_item_origin_id": None,
+            "p_quantity":       acc["cantidad"],
+            "p_hinge":          None,
+            "p_fastening":      None,
+            "p_width":          0,
+            "p_height":         0,
+            "p_depth":          0,
+            "p_variant_options": [],
+        },
+        "avisos_c":             [],
+    }
 
 
 # =============================================================================

@@ -253,7 +253,8 @@ def _calcular_pedido_paso_2() -> list[dict]:
     st.session_state.pop("_export_json", None)
     if USE_MOCK_C:
         return _mock_pedido(muebles, entrada)
-    return modulo_c.calcular_opciones(entrada) or []
+    electricos = modulo_b.cantidades_electricos(selecciones)
+    return modulo_c.calcular_opciones(entrada, electricos) or []
 
 
 # Schema del output del Módulo A (ver CLAUDE.md §9).
@@ -286,6 +287,9 @@ def _cargar_csv(file) -> None:
     st.session_state.pantalla = PANTALLA_VALIDACION
     st.session_state.csv_fallback_a_mock = False
     st.session_state.pop("paso_1_abiertos", None)  # forzar re-inicialización con todas las cards abiertas
+    st.session_state.pop("accesorios_electricos", None)  # los eléctricos son por pedido
+    for _k in [k for k in st.session_state.keys() if str(k).startswith("elec_")]:
+        del st.session_state[_k]  # estado de sus contadores
 
     if not USE_MOCK_DATA:
         # Detectar si es el CSV de validación ya procesado (output del Módulo A),

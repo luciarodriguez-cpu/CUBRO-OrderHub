@@ -49,7 +49,7 @@ conteos_extraibles:
   BIBTS608057: {cajones_clasicos: 1, bloques: 1, cajones_interiores: 0}
   BIBTS908057: {cajones_clasicos: 1, bloques: 1, cajones_interiores: 0}
 
-  # BE2B — 2 bloques, sin cajón (no lleva organizador, solo alfombrilla)
+  # BE2B — 2 bloques, sin cajón (organizador en bloques desde 19/10/2026)
   BE2B608057: {cajones_clasicos: 0, bloques: 2, cajones_interiores: 0}
   BE2B908057: {cajones_clasicos: 0, bloques: 2, cajones_interiores: 0}
 
@@ -107,7 +107,11 @@ cubos_basura:
 
 
 # ── Organizadores de cajón (RCOU / ZSETTIR) — por ancho×fondo×uso ───────────
-# uso: "clasico" (cajón de 200mm) o "interior" (cajón oculto AQC / op_223).
+# uso: "clasico" (cajón de 200mm), "bloque" (extraíble de 400mm) o "interior"
+# (cajón oculto AQC / op_223). Para cada mueble se busca la fila probando en
+# orden interior → clasico → bloque, solo entre los usos que el mueble tiene.
+# Máximo de organizadores = cajones clásicos + bloques + cajones interiores.
+# El tarif Cubro 2026 V5 solo da RCOU para fondo 57: no hay filas de fondo 35.
 # Si no hay fila para una combinación (ancho, fondo, uso), no se ofrece
 # organizador para esa combinación — así resolvemos el punto abierto del
 # ancho 60 en cajón interior sin necesidad de una excepción por código:
@@ -119,9 +123,15 @@ organizadores:
   - {ancho: 60, fondo: 57, uso: clasico,  rcou: RCOU6057,  zsettir: ZSETTIR6057}
   - {ancho: 90, fondo: 57, uso: clasico,  rcou: RCOU9057,  zsettir: ZSETTIR19057}
   - {ancho: 60, fondo: 57, uso: interior, rcou: RCOU6057,  zsettir: ZSETTIR6057}
+  # bloques — añadido 19/10/2026 (mismos códigos que en clásico)
+  - {ancho: 45, fondo: 57, uso: bloque,   rcou: RCOU4557,  zsettir: ZSETTIR4557}
+  - {ancho: 60, fondo: 57, uso: bloque,   rcou: RCOU6057,  zsettir: ZSETTIR6057}
+  - {ancho: 90, fondo: 57, uso: bloque,   rcou: RCOU9057,  zsettir: ZSETTIR19057}
 
 
-# ── Alfombrillas antideslizantes (checkbox único, cantidad = total extraíbles) ─
+# ── Alfombrillas antideslizantes (contador 0..total extraíbles) ─────────────
+# Solo se ofrecen si el mueble tiene algún extraíble y hay código por
+# ancho×fondo (o código forzado). La cantidad la elige el usuario.
 alfombrillas:
   # ZTAAQC — específica de columnas AQC (cajones interiores de serie)
   aqc:
@@ -153,20 +163,35 @@ patas_decorativas:
   sg: Z5PIED1
   nombre: "Patas decorativas"
   trigger_op402_valor: SPI
+  # Tarif: "PIED DECORATIF triangulaire, lot de 5, hauteur 1,7 cm"
+  aviso_ui: >-
+    Hemos añadido el accesorio de patas decorativas de 1,7 cm (Z5PIED1)
+    porque has seleccionado patas de 10 mm.
 
 
-# ── Eléctricos de iluminación — seleccionables por el usuario (checkbox) ────
-# Disponibles solo mientras la op_220/op_222 correspondiente esté activa (hoy
-# solo existen en H1) — no se restringe a una familia de mueble en el código,
-# así que si el catálogo las habilita en otra familia el checkbox ya
-# funciona sin tocar código. Cambiado de automático a seleccionable el
-# 28/07/2026 a petición de Lucía.
+# ── Eléctricos de iluminación — sección global del Paso 1 ───────────────────
+# No van por mueble: su potencia depende de la cocina entera. Se eligen con un
+# contador por artículo en la sección "Accesorios eléctricos" del Paso 1, que
+# solo aparece si algún mueble tiene op_220 (trigger_op220) u op_222
+# (trigger_op222). Salen en el pedido como una línea por artículo.
+# minimo_si_op220: cantidad mínima obligatoria si algún mueble tiene op_220
+# (bloquea "Continuar al Paso 2"). Cambiado 19/10/2026 a petición de Lucía.
+# El ZCONVLEDH30 se sigue ofreciendo aunque el tarif lo dé de serie con el PRB
+# (decisión tomada).
 electricos_iluminacion:
   trigger_op220:
-    - {sg: ZCONVLEDH30, nombre: "Convertidor LED"}
-    - {sg: ZRAL200,     nombre: "Alargador 200cm"}
+    - {sg: ZCONVLEDH30,  nombre: "Convertidor LED 30 W"}
+    - {sg: ZCONVLEDH60,  nombre: "Convertidor LED 60 W"}
+    - {sg: ZCONVLEDH100, nombre: "Convertidor LED 100 W"}
+    - {sg: ZRAL200,      nombre: "Alargador LED 200 cm", minimo_si_op220: 1}
   trigger_op222:
     - {sg: ZDTM, nombre: "Mando a distancia"}
+  # Regla de potencia del tarif por longitud total de perfil iluminado.
+  # Solo informativa (texto de ayuda): la elección la hace el usuario.
+  regla_potencia:
+    - {hasta_cm: 310,  sg: ZCONVLEDH30}
+    - {hasta_cm: 620,  sg: ZCONVLEDH60}
+    - {hasta_cm: 1000, sg: ZCONVLEDH100}
 
 
 # ── Traducciones FR por categoría (para el PDF) ──────────────────────────────
@@ -178,6 +203,8 @@ traducciones_fr:
   "Accesorios eléctricos de iluminación":  "Accessoires électriques d'illumination"
   # Nombres concretos de los eléctricos (no son categorías, pero coinciden por
   # texto exacto — ver modulo_b._traducir_categoria_accesorio):
-  "Convertidor LED":                       "Convertisseur LED"
+  "Convertidor LED 30 W":                  "Convertisseur LED 30 W"
+  "Convertidor LED 60 W":                  "Convertisseur LED 60 W"
+  "Convertidor LED 100 W":                 "Convertisseur LED 100 W"
+  "Alargador LED 200 cm":                  "Rallonge LED 200 cm"
   "Mando a distancia":                     "Télécommande"
-  "Alargador 200cm":                       "Rallonge 200cm"
