@@ -1173,7 +1173,12 @@ def _opcionales_aplicables(mueble: dict, interfaz: dict) -> list[str]:
         tirador_code = str(mueble.get("Tirador") or "").strip()
         visible_con  = interfaz["op_121"].get("visible_con_tiradores") or []
         excepciones  = interfaz["op_121"].get("excepciones") or []
-        if tirador_code in visible_con and name not in excepciones:
+        # Plantea fuerza SPF siempre, también en los muebles de excepciones;
+        # las excepciones solo quitan el SPF opcional (Curve/Line).
+        forzado_siempre = interfaz["op_121"].get("forzado_siempre") or []
+        if tirador_code in visible_con and (
+            name not in excepciones or tirador_code in forzado_siempre
+        ):
             aplicables.append("op_121")
 
     # op_207 — checkbox para fregadero (P60/P90) o radio para despensa (GM1/GM2)
