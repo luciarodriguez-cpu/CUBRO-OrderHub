@@ -2228,6 +2228,9 @@ def _render_card_grupo_rodapie(grupo: dict, catalogo: dict) -> None:  # noqa: C9
     cod_3600   = grupo["cod_3600"]
     cod_1800   = grupo["cod_1800"]
     total_mm   = grupo["total_mm"]
+    # Largo de cada pieza y alto: del catálogo (fuente: tarif), no fijos en código
+    largo_a    = int((catalogo.get(cod_3600) or {}).get("ancho_mm") or 0)
+    largo_b    = int((catalogo.get(cod_1800) or {}).get("ancho_mm") or 0)
 
     if "rodapie_grupos" not in st.session_state:
         st.session_state.rodapie_grupos = {}
@@ -2236,7 +2239,7 @@ def _render_card_grupo_rodapie(grupo: dict, catalogo: dict) -> None:  # noqa: C9
     )
     revisado = bool(estado.get("check", False))
 
-    alto_mm  = 100 if code_skp == "SOCX10" else 70
+    alto_mm  = (catalogo.get(code_skp) or {}).get("alto_mm") or (100 if code_skp == "SOCX10" else 70)
     titulo   = (
         f"{'🟢' if revisado else '🔴'}  Rodapié {alto_mm} mm  ·  "
         f"{acabado_ui} ({gama_ui})  ·  Total necesario: {total_mm} mm"
@@ -2264,7 +2267,7 @@ def _render_card_grupo_rodapie(grupo: dict, catalogo: dict) -> None:  # noqa: C9
             c1, c2 = st.columns(2)
             with c1:
                 n3600_nuevo = st.number_input(
-                    f"{cod_3600}  (3600 mm/pieza)",
+                    f"{cod_3600}  ({largo_a} mm/pieza)",
                     min_value=0,
                     step=1,
                     value=int(estado.get("n3600", 0)),
@@ -2272,7 +2275,7 @@ def _render_card_grupo_rodapie(grupo: dict, catalogo: dict) -> None:  # noqa: C9
                 )
             with c2:
                 n1800_nuevo = st.number_input(
-                    f"{cod_1800}  (1800 mm/pieza)",
+                    f"{cod_1800}  ({largo_b} mm/pieza)",
                     min_value=0,
                     step=1,
                     value=int(estado.get("n1800", 0)),
@@ -2289,7 +2292,7 @@ def _render_card_grupo_rodapie(grupo: dict, catalogo: dict) -> None:  # noqa: C9
                 st.session_state[f"check_rod_{key}"] = False
                 st.rerun()
 
-            total_elegido = n3600_nuevo * 3600 + n1800_nuevo * 1800
+            total_elegido = n3600_nuevo * largo_a + n1800_nuevo * largo_b
 
             # Contador en vivo
             if total_elegido == 0:
@@ -2369,7 +2372,11 @@ def _agrupar_rodapies_pu(muebles_pu: list[dict]) -> list[dict]:
                 "code":          code,
                 "gama_ui":       gama_ui,
                 "acabado_ui":    acabado_ui,
-                "ancho_pieza_mm": cfg.get("ancho_pieza_mm") or 3000,
+                "ancho_pieza_mm": (
+                    cfg.get("ancho_pieza_mm")
+                    or (_cargar_catalogo().get(code) or {}).get("ancho_mm")
+                    or 0
+                ),
                 "alto_mm":       cfg.get("alto_mm") or 0,
                 "piezas":        [],
                 "total_mm":      0,

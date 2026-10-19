@@ -3,7 +3,9 @@ app.py — Order Hub CUBRO
 Orquestación Streamlit del flujo A → B → C → B.
 """
 
+import importlib
 import os
+import pathlib
 import subprocess
 from datetime import datetime
 
@@ -14,6 +16,37 @@ import modulo_a
 import modulo_b
 import modulo_c
 from modulo_b import PANTALLA_VALIDACION, PANTALLA_PASO_1, PANTALLA_PASO_2
+
+
+# Los módulos cargan data/*.yaml|json una sola vez (al importar, lru_cache o
+# st.cache_data). Un push que solo toca data/ no los recarga y la app seguiría
+# mostrando y validando con datos viejos. Si la huella de data/ cambia desde
+# que se cargó cada módulo, se vacía la caché y se recargan los tres.
+_DATA_DIR = pathlib.Path(__file__).parent / "data"
+
+
+def _huella_datos() -> tuple:
+    return tuple(
+        (p.name, p.stat().st_mtime_ns, p.stat().st_size)
+        for p in sorted(_DATA_DIR.glob("*"))
+        if p.suffix in (".yaml", ".json")
+    )
+
+
+def _sincronizar_datos() -> None:
+    huella = _huella_datos()
+    modulos = (modulo_a, modulo_c, modulo_b)
+    if all(getattr(m, "_huella_datos", None) == huella for m in modulos):
+        return
+    if any(hasattr(m, "_huella_datos") for m in modulos):
+        st.cache_data.clear()
+        for m in modulos:
+            importlib.reload(m)
+    for m in modulos:
+        m._huella_datos = huella
+
+
+_sincronizar_datos()
 
 
 # Módulo A ya implementado — lee catalogo.json y opciones_mueble.yaml en tiempo real.
