@@ -221,8 +221,17 @@ op_104:
 # Round y Square nunca llevan SPF.
 # -----------------------------------------------------------------------------
 op_121:
-  todos: P   # Opcional en los 121 muebles del catálogo
-  excepciones: []
+  todos: P   # Opcional en todos salvo las excepciones (no se ofrece en la UI)
+  excepciones:   # 19/10/2026 — su línea OPTIONS del tarif Cubro 2026 V5 no incluye SPF
+    - BC158057     # solo DEM ("Livrée sans poignée, sauf poignée Round")
+    - EOVV37       # PRB / DTG / DTD / DEM
+    - EOAVV37      # solo DEM
+    - EOV8760      # sin línea OPTIONS
+    - EOV9060      # sin línea OPTIONS
+    - EOV20760     # sin línea OPTIONS
+    - EOV21060     # sin línea OPTIONS
+    - EOV22760     # sin línea OPTIONS
+    - EOV23060     # sin línea OPTIONS
 
 
 # -----------------------------------------------------------------------------
@@ -424,11 +433,11 @@ op_217:
     - B308035        # P
     - B458035        # P
     - B608035        # P
+    - B908035        # P — añadido 19/10/2026 (tarif Cubro 2026 V5: SPF/TL1/RL3/DEM)
     - B308057        # P
     - B458057        # P
     - B608057        # P
-    - BETO458057     # P
-    - BETO608057     # P
+    - B908057        # P — añadido 19/10/2026 (tarif Cubro 2026 V5: SPF/TL1/TLH/RL3/DEM)
     - BAV908057      # P
     - BAV1208057     # P
     - BAV1P908057    # P
@@ -443,10 +452,12 @@ op_217:
     - AVA6022057     # P
     - AVA1P4520035   # P
     - AVA1P6020035   # P
+    - AVA1P9020035   # P — añadido 19/10/2026 (tarif Cubro 2026 V5)
     - AVA1P4520057   # P
     - AVA1P6020057   # P
     - AVA1P4522035   # P
     - AVA1P6022035   # P
+    - AVA1P9022035   # P — añadido 19/10/2026 (tarif Cubro 2026 V5)
     - AVA1P4522057   # P
     - AVA1P6022057   # P
     - ABA6020057     # P
@@ -461,18 +472,18 @@ op_217:
     - AQC31P6022057  # P
     - AFS6020057     # P
     - AFS6022057     # P
-    - AFS2B6020057   # P
-    - AFS2B6022057   # P
     - AFSMO6020057   # P
     - AFSMO6022057   # P
-    - AFSMOBT6020057 # P
-    - AFSMOBT6022057 # P
+    - AGM9020057     # P — añadido 19/10/2026 (tarif Cubro 2026 V5: SPF/TL1/GM1/GM2)
+    - AGM9022057     # P — añadido 19/10/2026 (tarif Cubro 2026 V5)
     - HR45V35        # P
     - HR60V35        # P
     - HR45V57        # P
     - HR60V57        # P
     - HLVV57         # P
     - HPT60V57       # P
+    # eliminados 19/10/2026 (tarif Cubro 2026 V5 no lista TL1): BETO458057, BETO608057,
+    # AFS2B6020057, AFS2B6022057, AFSMOBT6020057, AFSMOBT6022057
 
   solo_PS1:
     - H1306035       # P
@@ -506,6 +517,7 @@ op_220:
   - H14510035      # P
   - H16010035      # P
   - H19010035      # P
+  - EOVV37         # P — añadido 19/10/2026 (tarif Cubro 2026 V5: PRB/DTG/DTD/DEM)
 
 
 # -----------------------------------------------------------------------------
@@ -524,6 +536,7 @@ op_222:
   - H14510035      # P
   - H16010035      # P
   - H19010035      # P
+  - EOVV37         # P — añadido 19/10/2026 (tarif Cubro 2026 V5) · solo suspendido, ver reglas.yaml modulo_b.op_222
 
 
 # -----------------------------------------------------------------------------
@@ -553,12 +566,15 @@ op_227:
   - H1306035       # P
   - H1456035       # P
   - H1606035       # P
+  - H1906035       # P — añadido 19/10/2026 (tarif Cubro 2026 V5: H1 ancho 90 incluye CCH)
   - H1308035       # P
   - H1458035       # P
   - H1608035       # P
+  - H1908035       # P — añadido 19/10/2026 (tarif Cubro 2026 V5)
   - H13010035      # P
   - H14510035      # P
   - H16010035      # P
+  - H19010035      # P — añadido 19/10/2026 (tarif Cubro 2026 V5)
   - HPT60V57       # P
   - AVA4520035     # P
   - AVA6020035     # P
@@ -570,10 +586,12 @@ op_227:
   - AVA6022057     # P
   - AVA1P4520035   # P
   - AVA1P6020035   # P
+  - AVA1P9020035   # P — añadido 19/10/2026 (tarif Cubro 2026 V5)
   - AVA1P4520057   # P
   - AVA1P6020057   # P
   - AVA1P4522035   # P
   - AVA1P6022035   # P
+  - AVA1P9022035   # P — añadido 19/10/2026 (tarif Cubro 2026 V5)
   - AVA1P4522057   # P
   - AVA1P6022057   # P
   - ABA6020057     # P
@@ -609,25 +627,21 @@ op_231:
   - AVA6022057     # P
   - AVA1P4520035   # P
   - AVA1P6020035   # P
+  - AVA1P9020035   # P — añadido 19/10/2026 (tarif Cubro 2026 V5)
   - AVA1P4520057   # P
   - AVA1P6020057   # P
   - AVA1P4522035   # P
   - AVA1P6022035   # P
+  - AVA1P9022035   # P — añadido 19/10/2026 (tarif Cubro 2026 V5)
   - AVA1P4522057   # P
   - AVA1P6022057   # P
   - ABA6020057     # P
   - ABA6022057     # P
-  - EOVV37         # P
-  - EOV8760        # P
-  - EOV9060        # P
-  - EOV20760       # P
-  - EOV21060       # P
-  - EOV22760       # P
-  - EOV23060       # P
-  - EOAVV37        # P
   # eliminados 21/05/2026, confirmado por Jean Dilmetz el 20/05/2026: B308035, B308057
   # eliminados 28/07/2026 (misma exclusión de ancho 30cm, se habían quedado sin
   # quitar por descuido): H1306035, H1308035, H13010035
+  # eliminados 19/10/2026 (tarif Cubro 2026 V5: ningún elemento abierto lista RL3):
+  # EOVV37, EOAVV37, EOV8760, EOV9060, EOV20760, EOV21060, EOV22760, EOV23060
 
 
 # -----------------------------------------------------------------------------

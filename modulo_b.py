@@ -115,6 +115,10 @@ CODIGOS_MUEBLE_ABIERTO: set[str] = set(
 CODIGOS_PS_SEGUN_RODAPIE: set[str] = set(
     ((_OPCIONES_RAW.get("op_402") or {}).get("p_s_segun_rodapie")) or []
 )
+# Muebles de pared (siempre suspendidos) — misma fuente que modulo_c._es_suspendido
+CODIGOS_SUSPENDIDOS: set[str] = set(
+    ((_OPCIONES_RAW.get("op_402") or {}).get("excepciones")) or []
+)
 
 _av_d_raw = (_OPCIONES_RAW.get("avisos_desmontado") or {})
 CODIGOS_DESMONTADO: set[str]        = set(_av_d_raw.get("codigos")  or [])
@@ -439,6 +443,8 @@ def _cargar_interfaz(_v: int = 3) -> dict:
         mono_121   = r121_b.get("forzado_en_monoporte") or {}
         interfaz["op_121"] = {
             "etiqueta": entradas[0].get("ui", "Sin mecanizado para tirador"),
+            # Muebles donde el tarif no ofrece SPF → el control nunca se muestra
+            "excepciones": (op_mueble.get("op_121") or {}).get("excepciones") or [],
             # Tiradores con los que el control se muestra (Curve=4, Line=5, Plantea=7)
             "visible_con_tiradores": [str(t) for t in (r121_b.get("visible_con_tiradores") or [])],
             # Tirador que fuerza SPF en cualquier mueble (Plantea=7)
@@ -505,6 +511,8 @@ def _cargar_interfaz(_v: int = 3) -> dict:
             "etiqueta_derecha":   entradas[0].get("ui", "Sensor derecha")   if len(entradas) > 0 else "Sensor derecha",
             "etiqueta_izquierda": entradas[1].get("ui", "Sensor izquierda") if len(entradas) > 1 else "Sensor izquierda",
             "muebles": op_mueble.get("op_222") or [],
+            # Muebles donde el sensor solo se ofrece si van suspendidos (ej. EOVV37)
+            "solo_si_suspendido": (reglas_b.get("op_222") or {}).get("solo_si_suspendido") or [],
         }
 
     # op_700_opcional — etiqueta + excluidos (no_aplica) + forzadas (DEM automático)
@@ -1133,6 +1141,22 @@ def _check_mueble(
         st.rerun()
 
 
+def _va_suspendido(mueble: dict) -> bool:
+    """True si el mueble irá suspendido (p_fastening = "S").
+
+    Replica el cálculo de modulo_c: la "Posición" del CSV manda; si no viene,
+    los muebles de p_s_segun_rodapie van suspendidos cuando no traen rodapié,
+    y el resto según la lista de muebles de pared (op_402.excepciones).
+    """
+    posicion = (mueble.get("posicion") or "").strip().upper()
+    if posicion in ("P", "S"):
+        return posicion == "S"
+    name = (mueble.get("Name") or "").strip()
+    if name in CODIGOS_PS_SEGUN_RODAPIE:
+        return not _normalizar_vacio(_ui_rodapie(mueble.get("C_Rodapietext", "")))
+    return name in CODIGOS_SUSPENDIDOS
+
+
 def _opcionales_aplicables(mueble: dict, interfaz: dict) -> list[str]:
     """Lista de op_ids (en clave de `interfaz`) que aplican al mueble.
 
@@ -1148,7 +1172,8 @@ def _opcionales_aplicables(mueble: dict, interfaz: dict) -> list[str]:
     if "op_121" in interfaz:
         tirador_code = str(mueble.get("Tirador") or "").strip()
         visible_con  = interfaz["op_121"].get("visible_con_tiradores") or []
-        if tirador_code in visible_con:
+        excepciones  = interfaz["op_121"].get("excepciones") or []
+        if tirador_code in visible_con and name not in excepciones:
             aplicables.append("op_121")
 
     # op_207 — checkbox para fregadero (P60/P90) o radio para despensa (GM1/GM2)
@@ -1161,6 +1186,12 @@ def _opcionales_aplicables(mueble: dict, interfaz: dict) -> list[str]:
     for op_id in ("op_220", "op_222", "op_223", "op_227"):
         if name in (interfaz.get(op_id, {}).get("muebles") or []):
             aplicables.append(op_id)
+
+    # op_222 — en algunos muebles el sensor solo existe en posición suspendida
+    if "op_222" in aplicables:
+        solo_susp = interfaz.get("op_222", {}).get("solo_si_suspendido") or []
+        if name in solo_susp and not _va_suspendido(mueble):
+            aplicables.remove("op_222")
 
     # op_700 — aplica a todos salvo los no_aplica, tapetas y rodapiés.
     # Los forzadas (campanas HH*) también se incluyen: se muestran desactivados y marcados.

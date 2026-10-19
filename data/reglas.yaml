@@ -347,6 +347,18 @@ modulo_b:
       - AGM9020057    # añadido 21/05/2026, confirmado por Jean Dilmetz el 20/05/2026
       - AGM9022057    # añadido 21/05/2026, confirmado por Jean Dilmetz el 20/05/2026
 
+  # ---------------------------------------------------------------------------
+  # op_222 — Sensor para mando LED (DTD/DTG)
+  # Muebles donde el sensor solo se ofrece si el mueble va suspendido
+  # (p_fastening = "S"). Si va posado, el control no se muestra.
+  # Fuente: tarif Cubro 2026 V5, REMARQUES de EOVV37 — "Les options DTG/DTD
+  # sont disponibles sur le meuble uniquement en position suspendu."
+  # añadido 19/10/2026
+  # ---------------------------------------------------------------------------
+  op_222:
+    solo_si_suspendido:
+      - EOVV37
+
 
 # =============================================================================
 # MÓDULO C — Mapeo y cálculo
