@@ -1123,7 +1123,7 @@
                                      },
                    "ancho_mm":  null,
                    "alto_mm":  null,
-                   "fondo_mm":  375,
+                   "fondo_mm":  370,
                    "ancho_variable":  {"min": 300, "max": 900},
                    "alto_variable":   {"min": 600, "max": 1400}
                },
@@ -1194,7 +1194,7 @@
                                       },
                     "ancho_mm":  null,
                     "alto_mm":  null,
-                    "fondo_mm":  375,
+                    "fondo_mm":  370,
                     "ancho_variable":  {"min": 300, "max": 600},
                     "alto_variable":   {"min": 1000, "max": 2200}
                 },
@@ -1637,7 +1637,7 @@
                                             "min":  250,
                                             "max":  1240
                                         },
-                      "espesor_mm":  19,
+                      "espesor_mm":  20,
                       "fondo_mm":  null
                   },
     "PAN20LINOC":  {
@@ -1654,7 +1654,7 @@
                                              "min":  250,
                                              "max":  1240
                                          },
-                       "espesor_mm":  19,
+                       "espesor_mm":  20,
                        "fondo_mm":  null
                    },
     "ETAS19V20":  {
@@ -1672,7 +1672,7 @@
                                             "es":  "Rodapié laminado 100 mm",
                                             "fr":  "Plinthe lamine 100 mm"
                                         },
-                      "ancho_mm":  3000,
+                      "ancho_mm":  2500,
                       "alto_mm":   100,
                       "fondo_mm":  19
                   },
@@ -1681,7 +1681,7 @@
                                             "es":  "Rodapié laminado 70 mm",
                                             "fr":  "Plinthe lamine 70 mm"
                                         },
-                      "ancho_mm":  3000,
+                      "ancho_mm":  2500,
                       "alto_mm":   70,
                       "fondo_mm":  19
                   },
@@ -1690,7 +1690,7 @@
                                             "es":  "Rodapié linoleo 100 mm",
                                             "fr":  "Plinthe linoleum 100 mm"
                                         },
-                      "ancho_mm":  2750,
+                      "ancho_mm":  2500,
                       "alto_mm":   100,
                       "fondo_mm":  19
                   },
@@ -1699,7 +1699,7 @@
                                             "es":  "Rodapié linoleo 70 mm",
                                             "fr":  "Plinthe linoleum 70 mm"
                                         },
-                      "ancho_mm":  2750,
+                      "ancho_mm":  2500,
                       "alto_mm":   70,
                       "fondo_mm":  19
                   }
