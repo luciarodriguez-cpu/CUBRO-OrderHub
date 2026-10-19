@@ -60,6 +60,7 @@ def _default_state() -> dict:
     return {
         "pantalla": PANTALLA_VALIDACION,
         "csv_filename": None,
+        "csv_file_id": None,
         "csv_uploaded_at": None,
         "muebles": None,
         "selecciones_paso_1": {},
@@ -300,9 +301,15 @@ def _limpiar_estado_pedido() -> None:
         del st.session_state[key]
 
 
+def _id_subida(file) -> str:
+    """Identificador único de cada subida (cambia aunque el nombre se repita)."""
+    return getattr(file, "file_id", None) or f"{file.name}:{file.size}"
+
+
 def _cargar_csv(file) -> None:
     _limpiar_estado_pedido()
     st.session_state.csv_filename = file.name
+    st.session_state.csv_file_id = _id_subida(file)
     st.session_state.csv_uploaded_at = datetime.now()
     st.session_state.selecciones_paso_1 = {}
     st.session_state.pedido_paso_2 = None
@@ -406,7 +413,9 @@ def _render_sidebar() -> None:
             key=uploader_key,
         )
 
-        if nuevo is not None and nuevo.name != st.session_state.csv_filename:
+        # Se compara el id de la subida, no el nombre: un CSV corregido suele
+        # llamarse igual que el anterior y debe volver a procesarse.
+        if nuevo is not None and _id_subida(nuevo) != st.session_state.csv_file_id:
             if _hay_progreso():
                 st.session_state.pending_csv = nuevo
             else:
