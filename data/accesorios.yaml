@@ -81,21 +81,10 @@ conteos_extraibles:
 
 
 # ── Cajón interior condicional (op. 223) ─────────────────────────────────────
-# Si el pedido activa la op_223 en uno de estos códigos, se suma +1 a
-# cajones_interiores para ESE pedido (dinámico, no está en conteos_extraibles).
-cajon_interior_op223:
-  - B2B458035
-  - B2B608035
-  - B2B908035
-  - B2B458057
-  - B2B608057
-  - B2B908057
-  - AFS6020057
-  - AFS6022057
-  - AFS2B6020057
-  - AFS2B6022057
-  - AFSMO6020057
-  - AFSMO6022057
+# Si el pedido activa la op_223 en un mueble, se suma +1 a cajones_interiores
+# para ESE mueble (organizador y alfombrilla). La lista de muebles es la de
+# opciones_mueble.yaml → op_223 (fuente única; antes se duplicaba aquí y se
+# desincronizó: los B*057 no sumaban el cajón interior). Cambiado 19/10/2026.
 
 
 # ── Cubos de basura (checkbox + selector de código, cantidad fija 1) ─────────
@@ -110,7 +99,7 @@ cubos_basura:
 # uso: "clasico" (cajón de 200mm), "bloque" (extraíble de 400mm) o "interior"
 # (cajón oculto AQC / op_223). Para cada mueble se busca la fila probando en
 # orden interior → clasico → bloque, solo entre los usos que el mueble tiene.
-# Máximo de organizadores = cajones clásicos + bloques + cajones interiores.
+# Sin máximo por mueble: el usuario puede pedir organizadores extra.
 # El tarif Cubro 2026 V5 solo da RCOU para fondo 57: no hay filas de fondo 35.
 # Si no hay fila para una combinación (ancho, fondo, uso), no se ofrece
 # organizador para esa combinación — así resolvemos el punto abierto del
@@ -128,10 +117,24 @@ organizadores:
   - {ancho: 60, fondo: 57, uso: bloque,   rcou: RCOU6057,  zsettir: ZSETTIR6057}
   - {ancho: 90, fondo: 57, uso: bloque,   rcou: RCOU9057,  zsettir: ZSETTIR19057}
 
+# Muebles en los que NO se ofrece organizador aunque haya fila por medidas.
+# AQC: aún no está confirmado que el organizador quepa en sus cajones
+# interiores (decisión de Lucía, 19/10/2026).
+organizadores_excluidos:
+  - AQC34520057
+  - AQC34522057
+  - AQC36020057
+  - AQC36022057
+  - AQC31P4520057
+  - AQC31P4522057
+  - AQC31P6020057
+  - AQC31P6022057
 
-# ── Alfombrillas antideslizantes (contador 0..total extraíbles) ─────────────
-# Solo se ofrecen si el mueble tiene algún extraíble y hay código por
-# ancho×fondo (o código forzado). La cantidad la elige el usuario.
+
+# ── Alfombrillas antideslizantes (contador, sin máximo) ─────────────────────
+# Solo se ofrecen si el mueble tiene algún extraíble (incluido el cajón
+# interior de op_223) y hay código por ancho×fondo (o código forzado).
+# La cantidad la elige el usuario, sin máximo: puede pedir alfombrillas extra.
 alfombrillas:
   # ZTAAQC — específica de columnas AQC (cajones interiores de serie)
   aqc:

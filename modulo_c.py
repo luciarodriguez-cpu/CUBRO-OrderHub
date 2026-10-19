@@ -87,7 +87,9 @@ def _cargar_accesorios() -> dict:
         return yaml.safe_load(f) or {}
 
 
-def _calcular_accesorios_mueble(fila: dict, code: str, accesorios: dict, catalogo: dict) -> list[dict]:
+def _calcular_accesorios_mueble(
+    fila: dict, code: str, accesorios: dict, catalogo: dict, op_mueble: dict
+) -> list[dict]:
     """Devuelve las líneas de accesorio ([{codigo, cantidad}, ...]) para este mueble.
 
     Manuales (cubo, organizador, alfombrilla): leídos de las columnas que
@@ -98,7 +100,7 @@ def _calcular_accesorios_mueble(fila: dict, code: str, accesorios: dict, catalog
     items: list[dict] = []
 
     conteos_cfg = accesorios.get("conteos_extraibles") or {}
-    op223_codigos = set(accesorios.get("cajon_interior_op223") or [])
+    op223_codigos = set(op_mueble.get("op_223") or [])   # misma lista que la opción
     base = conteos_cfg.get(code) or {}
     clasicos   = int(base.get("cajones_clasicos", 0))
     bloques    = int(base.get("bloques", 0))
@@ -118,7 +120,7 @@ def _calcular_accesorios_mueble(fila: dict, code: str, accesorios: dict, catalog
     # ── Organizadores de cajón ────────────────────────────────────────────
     n_rcou    = int((fila.get("Organizador RCOU")    or "0").strip() or 0)
     n_zsettir = int((fila.get("Organizador ZSETTIR") or "0").strip() or 0)
-    if n_rcou > 0 or n_zsettir > 0:
+    if (n_rcou > 0 or n_zsettir > 0) and code not in set(accesorios.get("organizadores_excluidos") or []):
         # Misma búsqueda que modulo_b._codigo_organizador: interior → clasico
         # → bloque, solo entre los usos que el mueble tiene.
         usos = [u for u, n in (("interior", interiores), ("clasico", clasicos), ("bloque", bloques)) if n > 0]
@@ -136,10 +138,9 @@ def _calcular_accesorios_mueble(fila: dict, code: str, accesorios: dict, catalog
                 items.append({"codigo": fila_org["zsettir"], "cantidad": n_zsettir})
 
     # ── Alfombrilla antideslizante ────────────────────────────────────────
-    # Cantidad elegida por el usuario (contador), con tope en el total de extraíbles.
-    total = clasicos + bloques + interiores
-    n_alf = min(_a_entero(fila.get("Alfombrilla accesorio")), total)
-    if n_alf > 0:
+    # Cantidad elegida por el usuario (contador, sin máximo: puede pedir extra).
+    n_alf = _a_entero(fila.get("Alfombrilla accesorio"))
+    if n_alf > 0 and (clasicos + bloques + interiores) > 0:
         alf_cfg = accesorios.get("alfombrillas") or {}
         fondo_reducido = alf_cfg.get("fondo_reducido_forzado") or {}
         cod_alf = fondo_reducido.get(code, "")
@@ -804,7 +805,7 @@ def calcular_opciones(
         # un mueble — sin apertura ni fastening, dimensiones a 0 (ver
         # instrucciones de accesorios §7). No se omiten los automáticos por
         # no venir de un checkbox.
-        for acc in _calcular_accesorios_mueble(fila, code, accesorios, catalogo):
+        for acc in _calcular_accesorios_mueble(fila, code, accesorios, catalogo, op_mueble):
             resultado.append(_linea_accesorio(acc, code, len(resultado)))
 
     # ── Eléctricos de iluminación — una línea por artículo y pedido ─────────

@@ -164,7 +164,10 @@ def _cargar_accesorios_raw() -> dict:
 
 _ACCESORIOS_RAW = _cargar_accesorios_raw()
 _CONTEOS_EXTRAIBLES: dict[str, dict] = _ACCESORIOS_RAW.get("conteos_extraibles") or {}
-_CODIGOS_OP223_INTERIOR: set[str] = set(_ACCESORIOS_RAW.get("cajon_interior_op223") or [])
+# Muebles con cajón interior opcional (+1 extraíble si op_223 activa): misma
+# lista que la opción op_223 de opciones_mueble.yaml.
+_CODIGOS_OP223_INTERIOR: set[str] = set(_OPCIONES_RAW.get("op_223") or [])
+_ORGANIZADORES_EXCLUIDOS: set[str] = set(_ACCESORIOS_RAW.get("organizadores_excluidos") or [])
 _CUBOS_BASURA_CFG: dict = _ACCESORIOS_RAW.get("cubos_basura") or {}
 _CUBOS_BASURA_APLICA: set[str] = set(_CUBOS_BASURA_CFG.get("aplica_a") or [])
 _CUBOS_BASURA_CODIGOS: list[dict] = _CUBOS_BASURA_CFG.get("codigos") or []
@@ -2040,7 +2043,7 @@ def _resumen_accesorios_items(
     n_rcou = int(opcionales.get("organizador_rcou", 0) or 0)
     n_zsettir = int(opcionales.get("organizador_zsettir", 0) or 0)
     conteos = (clasicos, bloques, interiores)
-    if n_rcou > 0 or n_zsettir > 0:
+    if (n_rcou > 0 or n_zsettir > 0) and code not in _ORGANIZADORES_EXCLUIDOS:
         if n_rcou > 0:
             cod = _codigo_organizador(ancho_cm, fondo_cm, conteos, "rcou")
             items.append({"etiqueta": "Organizador de cajón", "codigo": cod or "—", "cantidad": n_rcou, "dimensiones": dim_str, "origen": "usuario"})
@@ -2048,8 +2051,8 @@ def _resumen_accesorios_items(
             cod = _codigo_organizador(ancho_cm, fondo_cm, conteos, "zsettir")
             items.append({"etiqueta": "Organizador de cajón (Set Latitude)", "codigo": cod or "—", "cantidad": n_zsettir, "dimensiones": dim_str, "origen": "usuario"})
 
-    n_alf = min(_a_entero(opcionales.get("alfombrilla")), clasicos + bloques + interiores)
-    if n_alf > 0:
+    n_alf = _a_entero(opcionales.get("alfombrilla"))
+    if n_alf > 0 and (clasicos + bloques + interiores) > 0:
         cod = _codigo_alfombrilla(code, ancho_cm, fondo_cm)
         if cod:
             items.append({"etiqueta": "Alfombrilla antideslizante", "codigo": cod, "cantidad": n_alf, "dimensiones": dim_str, "origen": "usuario"})
@@ -2162,10 +2165,13 @@ def _control_accesorios(
 def _control_organizador(
     clave: str, code: str, opcionales: dict, selecciones: dict, catalogo: dict, asegurar_divider
 ) -> None:
-    """Contadores RCOU / Set Latitude. Máximo = clásicos + bloques + interiores."""
+    """Contadores RCOU / Set Latitude, sin máximo (se pueden pedir extra).
+
+    Solo en muebles con algún extraíble, con fila de organizador para sus
+    medidas y que no estén en organizadores_excluidos (AQC).
+    """
     conteos = _conteos_mueble(code, opcionales)
-    max_organizador = sum(conteos)
-    if max_organizador <= 0:
+    if sum(conteos) <= 0 or code in _ORGANIZADORES_EXCLUIDOS:
         return
     ancho_cm, fondo_cm = _dimensiones_mueble_cm(code, catalogo)
     cod_rcou = _codigo_organizador(ancho_cm, fondo_cm, conteos, "rcou")
@@ -2179,19 +2185,15 @@ def _control_organizador(
     with col_r:
         nuevo_rcou = st.number_input(
             f"Organizador RCOU ({cod_rcou or '—'})",
-            min_value=0, max_value=max_organizador,
-            value=min(prev_rcou, max_organizador), step=1,
+            min_value=0, value=prev_rcou, step=1,
             key=f"org_rcou_{clave}", disabled=not cod_rcou,
         )
     with col_z:
         nuevo_zsettir = st.number_input(
             f"Set Latitude ({cod_zsettir or '—'})",
-            min_value=0, max_value=max_organizador,
-            value=min(prev_zsettir, max_organizador), step=1,
+            min_value=0, value=prev_zsettir, step=1,
             key=f"org_zsettir_{clave}", disabled=not cod_zsettir,
         )
-    if nuevo_rcou + nuevo_zsettir > max_organizador:
-        st.caption(f"⚠️ La suma no puede superar {max_organizador} (máximo de cajones y bloques del mueble).")
     if nuevo_rcou != prev_rcou or nuevo_zsettir != prev_zsettir:
         opcionales["organizador_rcou"] = nuevo_rcou
         opcionales["organizador_zsettir"] = nuevo_zsettir
@@ -2202,22 +2204,25 @@ def _control_organizador(
 def _control_alfombrilla(
     clave: str, code: str, opcionales: dict, selecciones: dict, catalogo: dict, asegurar_divider
 ) -> None:
-    """Contador de alfombrillas (0..total de extraíbles), solo si hay código."""
-    max_alf = sum(_conteos_mueble(code, opcionales))
-    if max_alf <= 0:
+    """Contador de alfombrillas, sin máximo (se pueden pedir extra).
+
+    Solo en muebles con algún extraíble (incluido el cajón interior de op_223)
+    y con código de alfombrilla para sus medidas (o forzado).
+    """
+    if sum(_conteos_mueble(code, opcionales)) <= 0:
         return
     ancho_cm, fondo_cm = _dimensiones_mueble_cm(code, catalogo)
     cod_alf = _codigo_alfombrilla(code, ancho_cm, fondo_cm)
     if not cod_alf:
         return
     asegurar_divider()
-    prev_alf = min(_a_entero(opcionales.get("alfombrilla", 0)), max_alf)
+    prev_alf = _a_entero(opcionales.get("alfombrilla", 0))
     nuevo_alf = st.number_input(
         f"Alfombrillas antideslizantes ({cod_alf})",
-        min_value=0, max_value=max_alf, value=prev_alf, step=1,
+        min_value=0, value=prev_alf, step=1,
         key=f"alfombrilla_n_{clave}",
     )
-    if nuevo_alf != _a_entero(opcionales.get("alfombrilla", 0)):
+    if nuevo_alf != prev_alf:
         opcionales["alfombrilla"] = int(nuevo_alf)
         _registrar_edicion(clave, selecciones)
         st.rerun()
@@ -2898,18 +2903,6 @@ def paso_1(muebles: list[dict]) -> None:
                                 "Selecciona el tipo de almacenamiento "
                                 "antes de marcar como revisado."
                             )
-                # Tope de organizadores: se comprueba en todos los muebles (también
-                # en los que tienen electrodoméstico o cubos), porque lo que se
-                # marca como revisado es exactamente lo que sale en el JSON.
-                if razon_bloqueo is None:
-                    _max_org = sum(_conteos_mueble(name, estado["opcionales"]))
-                    _n_rcou = int(estado["opcionales"].get("organizador_rcou", 0) or 0)
-                    _n_zsettir = int(estado["opcionales"].get("organizador_zsettir", 0) or 0)
-                    if (_n_rcou + _n_zsettir) > _max_org:
-                        razon_bloqueo = (
-                            "La suma de organizadores de cajón supera el máximo "
-                            "disponible para este mueble — ajústalo antes de marcar como revisado."
-                        )
 
                 st.divider()
                 _check_mueble(clave, selecciones, razon_bloqueo=razon_bloqueo)
