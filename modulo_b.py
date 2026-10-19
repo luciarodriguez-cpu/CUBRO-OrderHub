@@ -2898,12 +2898,14 @@ def paso_1(muebles: list[dict]) -> None:
                                 "Selecciona el tipo de almacenamiento "
                                 "antes de marcar como revisado."
                             )
-                else:
-                    _clas, _blo, _inte = _conteos_mueble(name, estado["opcionales"])
-                    _max_org = _clas + _blo + _inte
+                # Tope de organizadores: se comprueba en todos los muebles (también
+                # en los que tienen electrodoméstico o cubos), porque lo que se
+                # marca como revisado es exactamente lo que sale en el JSON.
+                if razon_bloqueo is None:
+                    _max_org = sum(_conteos_mueble(name, estado["opcionales"]))
                     _n_rcou = int(estado["opcionales"].get("organizador_rcou", 0) or 0)
                     _n_zsettir = int(estado["opcionales"].get("organizador_zsettir", 0) or 0)
-                    if _max_org > 0 and (_n_rcou + _n_zsettir) > _max_org:
+                    if (_n_rcou + _n_zsettir) > _max_org:
                         razon_bloqueo = (
                             "La suma de organizadores de cajón supera el máximo "
                             "disponible para este mueble — ajústalo antes de marcar como revisado."

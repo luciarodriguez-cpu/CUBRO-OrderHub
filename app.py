@@ -81,7 +81,13 @@ def _hay_progreso() -> bool:
     for mueble in selecciones.values():
         if mueble.get("check") or mueble.get("opcionales"):
             return True
-    return False
+    for grupo in (st.session_state.get("rodapie_grupos") or {}).values():
+        if grupo.get("check") or grupo.get("n3600") or grupo.get("n1800"):
+            return True
+    for grupo in (st.session_state.get("rodapie_pu_grupos") or {}).values():
+        if grupo.get("check"):
+            return True
+    return any((st.session_state.get("accesorios_electricos") or {}).values())
 
 
 def _mock_muebles() -> list[dict]:
@@ -279,17 +285,29 @@ def _parsear_csv_output_modulo_a(file) -> list[dict] | None:
     return df.to_dict("records")
 
 
+def _limpiar_estado_pedido() -> None:
+    """Borra todo el estado del pedido anterior (selecciones, rodapiés,
+    eléctricos y valores de los controles) salvo el estado global de la app.
+
+    Los controles del Paso 1 guardan su valor en st.session_state con keys
+    como "rod_n3600_<grupo>" u "org_rcou_<mueble>"; si un CSV nuevo tiene un
+    grupo o mueble con la misma key, heredaría cantidades del anterior.
+    """
+    conservar = set(_default_state()) | {"drive_subcarpetas"}
+    for key in list(st.session_state.keys()):
+        if key in conservar or str(key).startswith("csv_uploader_"):
+            continue
+        del st.session_state[key]
+
+
 def _cargar_csv(file) -> None:
+    _limpiar_estado_pedido()
     st.session_state.csv_filename = file.name
     st.session_state.csv_uploaded_at = datetime.now()
     st.session_state.selecciones_paso_1 = {}
     st.session_state.pedido_paso_2 = None
     st.session_state.pantalla = PANTALLA_VALIDACION
     st.session_state.csv_fallback_a_mock = False
-    st.session_state.pop("paso_1_abiertos", None)  # forzar re-inicialización con todas las cards abiertas
-    st.session_state.pop("accesorios_electricos", None)  # los eléctricos son por pedido
-    for _k in [k for k in st.session_state.keys() if str(k).startswith("elec_")]:
-        del st.session_state[_k]  # estado de sus contadores
 
     if not USE_MOCK_DATA:
         # Detectar si es el CSV de validación ya procesado (output del Módulo A),
