@@ -1,9 +1,9 @@
-Name,Apertura,D_Gama,ColorFrente,Color del interior,Tirador,Trasera,Color tir. de superficie,C_Rodapietext,Ancho,Ancho reducido
-,,,,,,,,,400 mm,
-,,,Olive LINOLEO,,,,,,,
-AVA2922057-P1,I,,,,3,,,,,
-AVA2922057-P2,I,,,,3,,,,,
-AVA2922057,1,3,Olive LINOLEO,Blanco mueble,3,Oak WOOD,Blanco,100 mm,10000 mm,290 mm
-DESAGÜES,,,,,,,,,,
-Enchufe estándar,,,,,,,,,,
-TOMAS DE AGUA,,,,,,,,,,
+Summary,Name,Apertura,D_Gama,ColorFrente,Color del interior,Tirador,Trasera,Color tir. de superficie,C_Rodapietext,Ancho,Ancho reducido,Acabado
+M1,,,,,,,,,,400 mm,,
+M2,,,,Olive LINOLEO,,,,,,,,
+M3,AVA2922057-P1,I,,,,3,,,,,,
+M4,AVA2922057-P2,I,,,,3,,,,,,
+M5,AVA2922057,1,3,Olive LINOLEO,Blanco mueble,3,Oak WOOD,Blanco,100 mm,10000 mm,290 mm,
+M6,DESAGÜES,,,,,,,,,,,
+M7,Enchufe estándar,,,,,,,,,,,
+M8,TOMAS DE AGUA,,,,,,,,,,,

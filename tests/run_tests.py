@@ -56,8 +56,10 @@ print("TEST 05 - CSV-04_21.csv (HR no admite reduccion, A16a)")
 run_test('CSV-04_21.csv', 2, 1)
 
 print("=" * 60)
-print("TEST 06 - CSV-04_23.csv (9 muebles, 1 correcto)")
-run_test('CSV-04_23.csv', 9, 1)
+print("TEST 06 - CSV-04_23.csv (9 muebles, 2 correctos: HH1908035 y HR60V57)")
+run_test('CSV-04_23.csv', 9, 2,
+    [{'name_skp': 'HH1908035', 'name': 'HH1908035', 'estado': '✅ CORRECTO'},
+     {'name_skp': 'HR60V57', 'name': 'HR60V57', 'estado': '✅ CORRECTO'}])
 
 print("=" * 60)
 print("TEST 07 - CSV-05_1.csv (9 muebles, 2 correctos)")

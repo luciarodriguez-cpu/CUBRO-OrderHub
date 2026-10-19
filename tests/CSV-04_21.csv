@@ -1,3 +1,3 @@
-Name,Name SKP,Estado,Apertura,D_Gama,ColorFrente,Color del interior,Tirador,Trasera,Color tir. de superficie,C_Rodapietext,Ancho,Ancho reducido,LenZ,Avisos
-HLVV57,HLVV57,⚠️ REVISAR,horizontal,1,Noche LACA,Blanco mueble,2,Laca,,,500 mm,,300 mm,"A21 · Alto fuera de rango: LenZ=800mm, válido=200–400mm | A22 · Ancho fuera de rango: 350mm, válido=450–1200mm"
-HR60V57,HR60V57,⚠️ REVISAR,derecha,3,Walnut LINOLEO,Negro mueble,4,,Arena,,10000 mm,480 mm,1200 mm,"A21 · Alto fuera de rango: LenZ=1200mm, válido=200–1000mm"
+Summary,Name,Name SKP,Estado,Apertura,D_Gama,ColorFrente,Color del interior,Tirador,Trasera,Color tir. de superficie,C_Rodapietext,Ancho,Ancho reducido,Alto,Avisos,Acabado
+M1,HLVV57,HLVV57,⚠️ REVISAR,horizontal,1,Noche LACA,Blanco mueble,2,Laca,,,500 mm,,300 mm,"A21 · Alto fuera de rango: LenZ=800mm, válido=200–400mm | A22 · Ancho fuera de rango: 350mm, válido=450–1200mm",
+M2,HR60V57,HR60V57,⚠️ REVISAR,derecha,3,Walnut LINOLEO,Negro mueble,4,,Arena,,10000 mm,480 mm,1200 mm,"A21 · Alto fuera de rango: LenZ=1200mm, válido=200–1000mm",
