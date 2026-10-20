@@ -306,18 +306,6 @@ def cantidades_electricos(selecciones: dict) -> dict[str, int]:
     return cantidades
 
 
-def _falta_minimo_electricos(selecciones: dict) -> list[dict]:
-    """Artículos con mínimo obligatorio (minimo_si_op220) no cubierto."""
-    hay_220, _ = _electricos_disponibles(selecciones)
-    if not hay_220:
-        return []
-    cantidades = cantidades_electricos(selecciones)
-    return [
-        art for art in (_ELECTRICOS_CFG.get("trigger_op220") or [])
-        if cantidades.get(art["sg"], 0) < int(art.get("minimo_si_op220", 0) or 0)
-    ]
-
-
 def _codigo_alfombrilla(code: str, ancho_cm: int, fondo_cm: int) -> str:
     """Código de alfombrilla resuelto por ancho/fondo (o forzado en BIBTS)."""
     if code in _ALFOMBRILLA_FONDO_REDUCIDO:
@@ -2300,15 +2288,9 @@ def _render_seccion_electricos(selecciones: dict) -> None:
 
     for art, n in automaticos:
         st.info(
-            f"Se añade automáticamente: {art['nombre']} ({art['sg']}) × {n}, "
-            f"uno por cada mueble con sensor para mando LED."
-        )
-
-    for art in _falta_minimo_electricos(selecciones):
-        minimo = int(art.get("minimo_si_op220", 0) or 0)
-        st.warning(
-            f"Hay muebles con recorte para perfil LED: añade como mínimo "
-            f"{minimo} {art['nombre']} ({art['sg']}) para continuar."
+            f"Se ha seleccionado {n} {'mueble' if n == 1 else 'muebles'} con recorte "
+            f"para interruptor LED. Se añade automáticamente: "
+            f"{art['nombre']} ({art['sg']}) × {n}."
         )
 
 
@@ -2963,24 +2945,15 @@ def paso_1(muebles: list[dict]) -> None:
             for g in grupos_rodapie_pu
         )
     )
-    falta_electricos = _falta_minimo_electricos(selecciones)
-    if not todos_revisados:
-        help_continuar = "Marca todos los muebles como revisados para continuar."
-    elif falta_electricos:
-        help_continuar = (
-            "Hay muebles con recorte para perfil LED: en «Accesorios eléctricos» "
-            "añade como mínimo " + ", ".join(
-                f"{int(a.get('minimo_si_op220', 0) or 0)} {a['nombre']}" for a in falta_electricos
-            ) + "."
-        )
-    else:
-        help_continuar = None
-    todos_revisados = todos_revisados and not falta_electricos
     if st.button(
         "Continuar al Paso 2",
         type="primary",
         disabled=not todos_revisados,
-        help=help_continuar,
+        help=(
+            None
+            if todos_revisados
+            else "Marca todos los muebles como revisados para continuar."
+        ),
     ):
         st.session_state.pantalla = PANTALLA_PASO_2
         st.session_state.pedido_paso_2 = None  # fuerza recálculo en app.py

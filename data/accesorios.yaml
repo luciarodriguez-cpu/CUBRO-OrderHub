@@ -177,8 +177,7 @@ patas_decorativas:
 # contador por artículo en la sección "Accesorios eléctricos" del Paso 1, que
 # solo aparece si algún mueble tiene op_220 (trigger_op220) u op_222
 # (trigger_op222). Salen en el pedido como una línea por artículo.
-# minimo_si_op220: cantidad mínima obligatoria si algún mueble tiene op_220
-# (bloquea "Continuar al Paso 2"). Cambiado 19/10/2026 a petición de Lucía.
+# Ningún artículo es obligatorio (el mínimo de 1 ZRAL200 se quitó el 20/10/2026).
 # uno_por_mueble_con_sensor: no lleva contador; se añade solo, una unidad por
 # cada mueble con sensor para mando LED (op_222 derecha/izquierda). Sin ningún
 # sensor en el pedido no se añade ni se ofrece. Cambiado 20/10/2026.
@@ -189,7 +188,7 @@ electricos_iluminacion:
     - {sg: ZCONVLEDH30,  nombre: "Convertidor LED 30 W"}
     - {sg: ZCONVLEDH60,  nombre: "Convertidor LED 60 W"}
     - {sg: ZCONVLEDH100, nombre: "Convertidor LED 100 W"}
-    - {sg: ZRAL200,      nombre: "Alargador LED 200 cm", minimo_si_op220: 1}
+    - {sg: ZRAL200,      nombre: "Alargador LED 200 cm"}
   trigger_op222:
     - {sg: ZDTM, nombre: "Interruptor D-motion", uno_por_mueble_con_sensor: true}
   # Regla de potencia del tarif por longitud total de perfil iluminado.
