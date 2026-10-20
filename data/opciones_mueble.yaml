@@ -223,7 +223,6 @@ op_104:
 op_121:
   todos: P   # Opcional en todos salvo las excepciones (no se ofrece en la UI)
   excepciones:   # 19/10/2026 — su línea OPTIONS del tarif Cubro 2026 V5 no incluye SPF
-    - BC158057     # solo DEM ("Livrée sans poignée, sauf poignée Round")
     - EOVV37       # PRB / DTG / DTD / DEM
     - EOAVV37      # solo DEM
     - EOV8760      # sin línea OPTIONS
@@ -1054,3 +1053,71 @@ encimeras_pdt:
     - NRWC
   op_637_forzada:
     - PDT20C
+
+
+# -----------------------------------------------------------------------------
+# medidas_invertidas — p_width / p_height de elementos medidos "en planta"
+# Regla general del p_item: medida variable → valor real del CSV; medida FIJA →
+# 0, porque SG ya la conoce por el código (ej. ETAS19V20: el fondo es siempre
+# 200 mm, así que p_width = 0 aunque el elemento mida 200). Confirmado por
+# Lucía el 20/10/2026.
+# En estos códigos el largo (columna Ancho del CSV) va en p_height y la otra
+# medida (Alto del CSV) en p_width, solo si es variable en el catálogo
+# (alto_variable); si es fija, p_width = 0.
+#   PDT20C: p_width = profundidad · p_height = largo
+#   NRWC:   p_width = alto        · p_height = largo
+#   BPLA1:  p_width = alto        · p_height = largo
+#   ETAS19V20: p_width = 0 (fondo fijo 200) · p_height = largo
+# PAN20LAMC / PAN20LINOC NO están aquí: p_width = largo · p_height = profundidad.
+# -----------------------------------------------------------------------------
+medidas_invertidas:
+  - PDT20C
+  - NRWC
+  - BPLA1
+  - ETAS19V20
+
+
+# -----------------------------------------------------------------------------
+# p_fastening_posicion_escena — posición fija de los elementos decorativos
+# Fuente: HBM_CubroxSchmidt_indice_D.xlsm → "Ind. C_environnements" →
+# columna "Positions dans la scène" (Bas → B · Haut → H). 20/10/2026.
+# Las tapetas no están aquí: su posición llega del CSV (B/H), validada en el
+# Módulo A. ETAS19V20 no tiene posición en el Excel → no se envía p_fastening.
+# -----------------------------------------------------------------------------
+p_fastening_posicion_escena:
+  B:
+    - SOC36010
+    - SOC18010
+    - SOC3607
+    - SOC1807
+    - SO25010LAM
+    - SO2507LAM
+    - SO25010LIN
+    - SO2507LIN
+    - J199060
+    - J198760
+    - J199037
+    - J198737
+    - J1921060
+    - J1920760
+    - J1923060
+    - J1922760
+    - J1921037
+    - J1920737
+    - J1923037
+    - J1922737
+    - J19VV
+    - HDV90C
+    - HDV87C
+    - PDT20C
+    - NRWC
+    - PAN20LAMC
+    - PAN20LINOC
+  H:
+    - BPLA1
+    - J196037
+    - J198037
+    - J1910037
+    - HABE19V12
+    - HABE19V37
+    - HABE19V60

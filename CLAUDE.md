@@ -291,6 +291,14 @@ Contrato actualizado (2026-06-11). `list[dict]` plana, una fila por mueble. Las 
 | 26 | Alto electro 2 | `str` | op_126_2.alto en mm — Caso B slot 2, sino `""` |
 | 27 | Cantidad | `str` | Solo para filas de rodapié SG (SOC36010/SOC18010/SOC3607/SOC1807): número de piezas. Resto de muebles: `""` |
 
+### Medidas del p_item (`p_width` / `p_height` / `p_depth`)
+
+- Medida **variable** → se envía el valor real (del CSV o del Paso 1).
+- Medida **fija** → se envía `0`: SG ya la conoce por el código. Ejemplo: en `ETAS19V20` el fondo es siempre 200 mm, así que `p_width = 0`.
+- `p_depth` es siempre `0`.
+- PDT20C, NRWC, BPLA1 y ETAS19V20 llevan el largo en `p_height` (`opciones_mueble.yaml → medidas_invertidas`). PAN20LAMC/PAN20LINOC no: `p_width` = largo, `p_height` = profundidad.
+- `p_fastening` de los elementos decorativos: posición fija B/H según el índice de SG (`opciones_mueble.yaml → p_fastening_posicion_escena`); las tapetas la traen del CSV.
+
 ### `data/catalogo.json`
 
 121 muebles. Schema por entrada:

@@ -666,14 +666,24 @@ def calcular_opciones(
                 p_hinge = None
 
         # ── p_fastening ───────────────────────────────────────────────────────
-        # Tapetas, rodapiés y joues: no se envía. Se omite del JSON vía _sin_nulos.
+        # Elementos decorativos (tapetas, rodapiés, paneles, encimeras): no se
+        # calcula como un mueble. Su posición fija (B/H) viene de
+        # opciones_mueble.yaml → p_fastening_posicion_escena (más abajo); las
+        # tapetas la traen del CSV. Sin posición → se omite del JSON (_sin_nulos).
         _codigos_tapeta_fast: set[str] = set((op_mueble.get("tapetas") or {}).get("codigos") or [])
         _codigos_rodapie_fast: set[str] = (
             set((op_mueble.get("rodapiés") or {}).get("codigos") or [])
             | set((op_mueble.get("rodapiés_pieza_unica") or {}).keys())
         )
         _codigos_joue_fast: set[str] = set((op_mueble.get("joues") or {}).get("codigos") or [])
-        if code in _codigos_tapeta_fast or code in _codigos_rodapie_fast or code in _codigos_joue_fast:
+        _codigos_enc_fast: set[str] = (
+            set((op_mueble.get("encimeras_panel") or {}).get("codigos") or [])
+            | set((op_mueble.get("encimeras_pdt") or {}).get("codigos") or [])
+        )
+        if (
+            code in _codigos_tapeta_fast or code in _codigos_rodapie_fast
+            or code in _codigos_joue_fast or code in _codigos_enc_fast
+        ):
             p_fastening = None
         else:
             _ps_segun_rodapie: set[str] = set(
@@ -691,6 +701,12 @@ def calcular_opciones(
         _posicion_csv = (fila.get("Posición") or "").strip().upper()
         if _posicion_csv in ("B", "H", "P", "S"):
             p_fastening = _posicion_csv
+
+        # Posición fija en escena de los elementos decorativos (Bas/Haut del
+        # índice de SG). Manda sobre el CSV: es un dato del catálogo.
+        for _pos_fija, _codigos_pos in (op_mueble.get("p_fastening_posicion_escena") or {}).items():
+            if code in (_codigos_pos or []):
+                p_fastening = _pos_fija
 
         # ── Opciones ──────────────────────────────────────────────────────────
         opciones_sg, opc_adic, codigos, avisos = _calcular_opciones_mueble(
@@ -755,20 +771,19 @@ def calcular_opciones(
         _tiene_alto_var  = _cat_e_dim.get("alto_variable")  is not None or _cat_e_dim.get("alto_variable_por_gama")  is not None
         _tiene_ancho_var = _cat_e_dim.get("ancho_variable") is not None or _cat_e_dim.get("ancho_variable_por_gama") is not None
 
-        # Dimensiones: siempre presentes. Variable → valor del CSV. Fijo → 0.
-        _codigos_enc_dim: set[str] = (
-            set((op_mueble.get("encimeras_panel") or {}).get("codigos") or []) |
-            set((op_mueble.get("encimeras_pdt")   or {}).get("codigos") or [])
-        )
+        # Dimensiones: siempre presentes. Variable → valor del CSV. Fijo → 0
+        # (SG ya conoce las medidas fijas por el código).
+        _codigos_invertidos: set[str] = set(op_mueble.get("medidas_invertidas") or [])
         if code == "FF12V":
             _p_width  = 0
             _p_height = int(_alto_final) if _alto_final.isdigit() else 0
             _p_depth  = 0
-        elif code in _codigos_enc_dim or code == "BPLA1":
-            # BPLA1: confirmado 2026 por Lucía — el ancho/alto del CSV se
-            # envían invertidos (igual que ya se hacía para encimeras).
+        elif code in _codigos_invertidos:
+            # PDT20C, NRWC, BPLA1, ETAS19V20 (ver opciones_mueble.yaml →
+            # medidas_invertidas): el largo (Ancho del CSV) va en p_height; la
+            # otra medida (Alto del CSV) en p_width solo si es variable.
             _p_height = int(_ancho_csv) if _ancho_csv.isdigit() else 0
-            _p_width  = int(_alto_csv)  if _alto_csv.isdigit()  else 0
+            _p_width  = int(_alto_csv)  if _tiene_alto_var and _alto_csv.isdigit() else 0
             _p_depth  = 0
         else:
             _p_width  = int(_ancho_csv) if _tiene_ancho_var and _ancho_csv.isdigit() else 0
