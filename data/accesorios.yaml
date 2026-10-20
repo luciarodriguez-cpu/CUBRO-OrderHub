@@ -179,6 +179,9 @@ patas_decorativas:
 # (trigger_op222). Salen en el pedido como una línea por artículo.
 # minimo_si_op220: cantidad mínima obligatoria si algún mueble tiene op_220
 # (bloquea "Continuar al Paso 2"). Cambiado 19/10/2026 a petición de Lucía.
+# uno_por_mueble_con_sensor: no lleva contador; se añade solo, una unidad por
+# cada mueble con sensor para mando LED (op_222 derecha/izquierda). Sin ningún
+# sensor en el pedido no se añade ni se ofrece. Cambiado 20/10/2026.
 # El ZCONVLEDH30 se sigue ofreciendo aunque el tarif lo dé de serie con el PRB
 # (decisión tomada).
 electricos_iluminacion:
@@ -188,7 +191,7 @@ electricos_iluminacion:
     - {sg: ZCONVLEDH100, nombre: "Convertidor LED 100 W"}
     - {sg: ZRAL200,      nombre: "Alargador LED 200 cm", minimo_si_op220: 1}
   trigger_op222:
-    - {sg: ZDTM, nombre: "Mando a distancia"}
+    - {sg: ZDTM, nombre: "Interruptor D-motion", uno_por_mueble_con_sensor: true}
   # Regla de potencia del tarif por longitud total de perfil iluminado.
   # Solo informativa (texto de ayuda): la elección la hace el usuario.
   regla_potencia:
@@ -210,4 +213,4 @@ traducciones_fr:
   "Convertidor LED 60 W":                  "Convertisseur LED 60 W"
   "Convertidor LED 100 W":                 "Convertisseur LED 100 W"
   "Alargador LED 200 cm":                  "Rallonge LED 200 cm"
-  "Mando a distancia":                     "Télécommande"
+  "Interruptor D-motion":                  "Interrupteur D-motion"

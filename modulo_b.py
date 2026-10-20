@@ -47,7 +47,7 @@ _TOOLTIPS_OPCIONALES = {
     "op_207_opcional":       "Añade cubos de basura integrados bajo el fregadero. Disponible en muebles BE2B y BEBTS.",
     "op_207_almacenamiento": "Elige cómo se organiza el interior de la despensa: estándar (baldas) o botellero.",
     "op_220":                "Mecaniza la base del mueble para alojar un perfil LED. Al activarlo aparece la opción de sensor.",
-    "op_222":                "Añade un sensor para activar el perfil LED con mando a distancia. No es obligatorio aunque el mueble lleve LED. Elige el lado más accesible según el diseño.",
+    "op_222":                "Añade un sensor para activar el perfil LED con el interruptor D-motion. No es obligatorio aunque el mueble lleve LED. Elige el lado más accesible según el diseño. Por cada mueble con sensor se añade un interruptor D-motion al pedido.",
     "op_223":                "Añade un cajón interior dentro del mueble.",
     "op_227":                "El mueble se vacía de baldas para alojar una caldera.",
     "op_700_opcional":       "El mueble se entrega sin pegar. Las campanas HH siempre lo llevan para facilitar el ajuste en obra.",
@@ -254,42 +254,55 @@ def _a_entero(valor) -> int:
         return 0
 
 
-def _electricos_disponibles(selecciones: dict) -> tuple[bool, bool]:
-    """(hay_op220, hay_op222) en algún mueble del pedido (opcionales del Paso 1)."""
-    hay_220 = hay_222 = False
+def _electricos_disponibles(selecciones: dict) -> tuple[bool, int]:
+    """(hay_op220, n_sensores) del pedido según los opcionales del Paso 1.
+
+    n_sensores = número de muebles con sensor para mando LED (op_222 derecha
+    o izquierda). El sensor solo existe con recorte LED (op_220) activo.
+    """
+    hay_220 = False
+    n_sensores = 0
     for estado in (selecciones or {}).values():
         opc = (estado or {}).get("opcionales") or {}
         if opc.get("op_220"):
             hay_220 = True
             if opc.get("op_222", "ninguno") not in (None, "ninguno"):
-                hay_222 = True
-    return hay_220, hay_222
+                n_sensores += 1
+    return hay_220, n_sensores
 
 
-def _articulos_electricos(hay_220: bool, hay_222: bool) -> list[dict]:
-    """Artículos eléctricos que se ofrecen según las opciones activas del pedido."""
-    articulos: list[dict] = []
-    if hay_220 or hay_222:
-        articulos += list(_ELECTRICOS_CFG.get("trigger_op220") or [])
-    if hay_222:
-        articulos += list(_ELECTRICOS_CFG.get("trigger_op222") or [])
-    return articulos
+def _articulos_electricos(hay_220: bool) -> list[dict]:
+    """Artículos eléctricos con contador (los elige el usuario)."""
+    return list(_ELECTRICOS_CFG.get("trigger_op220") or []) if hay_220 else []
+
+
+def _electricos_automaticos(n_sensores: int) -> list[tuple[dict, int]]:
+    """Artículos que se añaden solos: uno por mueble con sensor (ZDTM)."""
+    if n_sensores <= 0:
+        return []
+    return [
+        (art, n_sensores)
+        for art in (_ELECTRICOS_CFG.get("trigger_op222") or [])
+        if art.get("uno_por_mueble_con_sensor")
+    ]
 
 
 def cantidades_electricos(selecciones: dict) -> dict[str, int]:
     """Cantidades eléctricas efectivas del pedido {código SG → cantidad > 0}.
 
-    Solo cuentan los artículos que se ofrecen hoy (si el usuario desactiva
-    todos los op_220/op_222, las cantidades guardadas no llegan al pedido).
-    Es lo que app.py pasa a modulo_c.calcular_opciones.
+    Contadores: solo los que se ofrecen hoy (si el usuario desactiva todos los
+    op_220, las cantidades guardadas no llegan al pedido). Automáticos: uno por
+    mueble con sensor. Es lo que app.py pasa a modulo_c.calcular_opciones.
     """
     estado = st.session_state.get("accesorios_electricos") or {}
-    hay_220, hay_222 = _electricos_disponibles(selecciones)
+    hay_220, n_sensores = _electricos_disponibles(selecciones)
     cantidades: dict[str, int] = {}
-    for art in _articulos_electricos(hay_220, hay_222):
+    for art in _articulos_electricos(hay_220):
         n = _a_entero(estado.get(art["sg"], 0))
         if n > 0:
             cantidades[art["sg"]] = n
+    for art, n in _electricos_automaticos(n_sensores):
+        cantidades[art["sg"]] = n
     return cantidades
 
 
@@ -2090,8 +2103,8 @@ def _render_resumen_accesorios(code: str, mueble: dict, opcionales: dict, catalo
 
 def _items_electricos_pedido(pedido: list[dict]) -> list[dict]:
     """Líneas eléctricas del pedido (accesorios sin mueble padre) para Paso 2 y PDF."""
-    nombres = {
-        a["sg"]: a["nombre"]
+    config = {
+        a["sg"]: a
         for a in (_ELECTRICOS_CFG.get("trigger_op220") or []) + (_ELECTRICOS_CFG.get("trigger_op222") or [])
     }
     items: list[dict] = []
@@ -2099,7 +2112,11 @@ def _items_electricos_pedido(pedido: list[dict]) -> list[dict]:
         if e.get("es_accesorio") and not e.get("mueble_padre"):
             codigo = (e.get("p_item") or {}).get("p_item_code") or e.get("Código mueble", "")
             cantidad = _a_entero((e.get("p_item") or {}).get("p_quantity"))
-            items.append({"etiqueta": nombres.get(codigo, codigo), "codigo": codigo, "cantidad": cantidad})
+            art = config.get(codigo) or {}
+            items.append({
+                "etiqueta": art.get("nombre", codigo), "codigo": codigo, "cantidad": cantidad,
+                "automatico": bool(art.get("uno_por_mueble_con_sensor")),
+            })
     return items
 
 
@@ -2153,7 +2170,7 @@ def _control_accesorios(
     if bool(opcionales.get("op_220")):
         _asegurar_divider()
         st.caption(
-            "Los convertidores, alargadores y el mando a distancia se eligen al final "
+            "Los convertidores y alargadores se eligen al final "
             "del Paso 1, en «Accesorios eléctricos», para toda la cocina."
         )
 
@@ -2247,12 +2264,14 @@ def _texto_regla_potencia() -> str:
 def _render_seccion_electricos(selecciones: dict) -> None:
     """Sección global "Accesorios eléctricos" del Paso 1.
 
-    Solo aparece si algún mueble tiene op_220 u op_222. Un contador por
-    artículo (mínimo 0); el estado vive en st.session_state.accesorios_electricos.
+    Solo aparece si algún mueble tiene op_220. Un contador por artículo
+    (mínimo 0; estado en st.session_state.accesorios_electricos) y, aparte,
+    los automáticos (interruptor D-motion, uno por mueble con sensor).
     """
-    hay_220, hay_222 = _electricos_disponibles(selecciones)
-    articulos = _articulos_electricos(hay_220, hay_222)
-    if not articulos:
+    hay_220, n_sensores = _electricos_disponibles(selecciones)
+    articulos = _articulos_electricos(hay_220)
+    automaticos = _electricos_automaticos(n_sensores)
+    if not articulos and not automaticos:
         return
     estado = st.session_state.setdefault("accesorios_electricos", {})
 
@@ -2278,6 +2297,12 @@ def _render_seccion_electricos(selecciones: dict) -> None:
             if nuevo != prev:
                 estado[art["sg"]] = int(nuevo)
                 st.rerun()
+
+    for art, n in automaticos:
+        st.info(
+            f"Se añade automáticamente: {art['nombre']} ({art['sg']}) × {n}, "
+            f"uno por cada mueble con sensor para mando LED."
+        )
 
     for art in _falta_minimo_electricos(selecciones):
         minimo = int(art.get("minimo_si_op220", 0) or 0)
@@ -3828,7 +3853,8 @@ def generar_pdf_resumen(
         _render_tabla(pdf, [
             (
                 _traducir_categoria_accesorio(it['etiqueta']) if idioma == 'fr' else it['etiqueta'],
-                f"{it['codigo']} - {it['cantidad']} {'ud.' if it['cantidad'] == 1 else 'uds.'}",
+                f"{it['codigo']} - {it['cantidad']} {'ud.' if it['cantidad'] == 1 else 'uds.'}"
+                + (" [auto]" if it['automatico'] else ""),
             )
             for it in _elec_pdf
         ])
@@ -3881,7 +3907,8 @@ def paso_2(pedido: list[dict] | None) -> None:
         st.subheader("Accesorios eléctricos")
         for it in _elec_p2:
             _cant = it["cantidad"]
-            st.markdown(f"- **{it['etiqueta']}** ({it['codigo']}) — {_cant} {'ud.' if _cant == 1 else 'uds.'}")
+            _auto = "  ⚙ automático (uno por mueble con sensor)" if it["automatico"] else ""
+            st.markdown(f"- **{it['etiqueta']}** ({it['codigo']}) — {_cant} {'ud.' if _cant == 1 else 'uds.'}{_auto}")
 
     st.divider()
 
