@@ -1,0 +1,110 @@
+# =============================================================================
+# data/piezas_extra.yaml
+# Piezas sueltas que se añaden a mano al pedido (no llegan por CSV): sección
+# "Piezas extra" del Paso 1. Cada pieza sale en el JSON como una línea p_item
+# propia al final del pedido (después de muebles y accesorios).
+#
+# Fuente: encargo de Lucía (20/10/2026) + HBM_CubroxSchmidt_indice_D.xlsm →
+# "Ind. E_Pièces détachées" (designaciones FR y opciones por pieza).
+#
+# Medidas en el JSON (regla general del p_item, ver CLAUDE.md):
+#   medida fija → 0 (SG la conoce por el código) · medida variable → valor real.
+#   Solo FVV (ancho y alto) y ETEOV37 (ancho) envían medidas reales.
+#
+# Solo se usan opciones que ya existen en el Order Hub. Valores:
+#   op_100 gama · op_101 acabado del frente · op_200 color interior
+#   op_203 canto (forzada, E14) · op_206 cierre (forzada, FSP)
+#   op_121 SPF · op_217 TL1 (tirador Touch Latch) · op_220 PRB · op_222 DTD/DTG
+#   op_223 cajón interior (TLH) · op_231 reducción de ancho (RL3, p_param1)
+#   op_300 / op_301 tirador y color · op_410 acabado mueble abierto · op_700 DEM
+# =============================================================================
+
+
+# ── Tipos del desplegable (orden de la UI) ──────────────────────────────────
+tipos:
+  - Frentes
+  - Baldas interiores mueble
+
+
+# ── Grupos de opciones ──────────────────────────────────────────────────────
+# obligatorias: el usuario tiene que elegirlas antes de añadir la pieza.
+# forzadas:     se envían siempre, con el valor indicado.
+# facultativas: el usuario puede activarlas.
+grupos_opciones:
+  frente:
+    obligatorias: [op_100, op_101, op_300, op_301]
+    forzadas: {op_206: FSP}
+    facultativas: [op_121, op_217, op_223, op_231, op_700]
+  frente_led:             # F45100: como frente + recorte LED y sensor
+    obligatorias: [op_100, op_101, op_300, op_301]
+    forzadas: {op_206: FSP}
+    facultativas: [op_121, op_217, op_220, op_222, op_223, op_231, op_700]
+  frente_sin_tl1:         # F60100: como frente, sin Touch Latch
+    obligatorias: [op_100, op_101, op_300, op_301]
+    forzadas: {op_206: FSP}
+    facultativas: [op_121, op_223, op_231, op_700]
+  frente_con_interior:    # F6013: como frente + color interior
+    obligatorias: [op_100, op_101, op_200, op_300, op_301]
+    forzadas: {op_206: FSP}
+    facultativas: [op_121, op_217, op_223, op_231, op_700]
+  frente_variable:        # FVV: como frente, sin reducción de ancho
+    obligatorias: [op_100, op_101, op_300, op_301]
+    forzadas: {op_206: FSP}
+    facultativas: [op_121, op_217, op_223, op_700]
+  balda:
+    obligatorias: [op_100, op_200]
+    forzadas: {op_203: E14}
+    facultativas: []
+  balda_variable:         # ETEOV37: solo el acabado (LACA o WOOD)
+    obligatorias: [op_410]
+    forzadas: {}
+    facultativas: []
+    gamas_op_410: [LACA, WOOD]
+
+
+# ── Piezas ──────────────────────────────────────────────────────────────────
+# ancho / alto (frentes) o ancho / fondo (baldas) en mm, solo informativo en la
+# UI. ancho_variable / alto_variable: medida que introduce el usuario y que se
+# envía en p_width / p_height. Rangos pendientes de confirmar con el tarif.
+piezas:
+  - {codigo: F1580, tipo: Frentes, es: "Frente para elemento", fr: "FACADE", ancho: 146, alto: 796, opciones: frente}
+  - {codigo: F3060, tipo: Frentes, es: "Frente para elemento", fr: "FACADE", ancho: 296, alto: 596, opciones: frente}
+  - {codigo: F3080, tipo: Frentes, es: "Frente para elemento", fr: "FACADE", ancho: 296, alto: 796, opciones: frente}
+  - {codigo: F30100, tipo: Frentes, es: "Frente para elemento", fr: "FACADE", ancho: 296, alto: 996, opciones: frente}
+  - {codigo: F4520, tipo: Frentes, es: "Frente para elemento", fr: "FACADE", ancho: 446, alto: 196, opciones: frente}
+  - {codigo: F4540, tipo: Frentes, es: "Frente para elemento", fr: "FACADE", ancho: 446, alto: 396, opciones: frente}
+  - {codigo: F4560, tipo: Frentes, es: "Frente para elemento", fr: "FACADE", ancho: 446, alto: 596, opciones: frente}
+  - {codigo: F4580, tipo: Frentes, es: "Frente para elemento", fr: "FACADE", ancho: 446, alto: 796, opciones: frente}
+  - {codigo: F45100, tipo: Frentes, es: "Frente para elemento", fr: "FACADE", ancho: 446, alto: 996, opciones: frente_led}
+  - {codigo: F45120, tipo: Frentes, es: "Frente para elemento", fr: "FACADE", ancho: 446, alto: 1196, opciones: frente}
+  - {codigo: F45140, tipo: Frentes, es: "Frente para elemento", fr: "FACADE", ancho: 446, alto: 1396, opciones: frente}
+  - {codigo: F45200, tipo: Frentes, es: "Frente para elemento", fr: "FACADE", ancho: 446, alto: 1996, opciones: frente}
+  - {codigo: F45220, tipo: Frentes, es: "Frente para elemento", fr: "FACADE", ancho: 446, alto: 2196, opciones: frente}
+  - {codigo: F6013, tipo: Frentes, es: "Frente para elemento", fr: "FACADE", ancho: 596, alto: 126, opciones: frente_con_interior}
+  - {codigo: F6020, tipo: Frentes, es: "Frente para elemento", fr: "FACADE", ancho: 596, alto: 196, opciones: frente}
+  - {codigo: F6040, tipo: Frentes, es: "Frente para elemento", fr: "FACADE", ancho: 596, alto: 396, opciones: frente}
+  - {codigo: F6060, tipo: Frentes, es: "Frente para elemento", fr: "FACADE", ancho: 596, alto: 596, opciones: frente}
+  - {codigo: F6080, tipo: Frentes, es: "Frente para elemento", fr: "FACADE", ancho: 596, alto: 796, opciones: frente}
+  - {codigo: F60100, tipo: Frentes, es: "Frente para elemento", fr: "FACADE", ancho: 596, alto: 996, opciones: frente_sin_tl1}
+  - {codigo: F60120, tipo: Frentes, es: "Frente para elemento", fr: "FACADE", ancho: 596, alto: 1196, opciones: frente}
+  - {codigo: F60140, tipo: Frentes, es: "Frente para elemento", fr: "FACADE", ancho: 596, alto: 1396, opciones: frente}
+  - {codigo: F60200, tipo: Frentes, es: "Frente para elemento", fr: "FACADE", ancho: 596, alto: 1996, opciones: frente}
+  - {codigo: F60220, tipo: Frentes, es: "Frente para elemento", fr: "FACADE", ancho: 596, alto: 2196, opciones: frente}
+  - {codigo: F7580, tipo: Frentes, es: "Frente para elemento", fr: "FACADE", ancho: 746, alto: 796, opciones: frente}
+  - {codigo: F75140, tipo: Frentes, es: "Frente para elemento", fr: "FACADE", ancho: 746, alto: 1396, opciones: frente}
+  - {codigo: F9020, tipo: Frentes, es: "Frente para elemento", fr: "FACADE", ancho: 896, alto: 196, opciones: frente}
+  - {codigo: F9040, tipo: Frentes, es: "Frente para elemento", fr: "FACADE", ancho: 896, alto: 396, opciones: frente}
+  - {codigo: FVV, tipo: Frentes, es: "Frente variable en ancho y alto para elemento", fr: "FACADE", ancho_variable: {min: 1, max: 3000}, alto_variable: {min: 1, max: 3000}, opciones: frente_variable}
+  - {codigo: ETCA3035, tipo: Baldas interiores mueble, es: "Balda interior mueble 19 mm", fr: "ETAGERE SUPPLEMENTAIRE épaisseur 19 mm", ancho: 300, fondo: 350, espesor: 19, opciones: balda}
+  - {codigo: ETCA3057, tipo: Baldas interiores mueble, es: "Balda interior mueble 19 mm", fr: "ETAGERE SUPPLEMENTAIRE épaisseur 19 mm", ancho: 300, fondo: 575, espesor: 19, opciones: balda}
+  - {codigo: ETCA4535, tipo: Baldas interiores mueble, es: "Balda interior mueble 19 mm", fr: "ETAGERE SUPPLEMENTAIRE épaisseur 19 mm", ancho: 450, fondo: 350, espesor: 19, opciones: balda}
+  - {codigo: ETCA4557, tipo: Baldas interiores mueble, es: "Balda interior mueble 19 mm", fr: "ETAGERE SUPPLEMENTAIRE épaisseur 19 mm", ancho: 450, fondo: 575, espesor: 19, opciones: balda}
+  - {codigo: ETCA6035, tipo: Baldas interiores mueble, es: "Balda interior mueble 19 mm", fr: "ETAGERE SUPPLEMENTAIRE épaisseur 19 mm", ancho: 600, fondo: 350, espesor: 19, opciones: balda}
+  - {codigo: ETCA6057, tipo: Baldas interiores mueble, es: "Balda interior mueble 19 mm", fr: "ETAGERE SUPPLEMENTAIRE épaisseur 19 mm", ancho: 600, fondo: 575, espesor: 19, opciones: balda}
+  - {codigo: ETCA9035, tipo: Baldas interiores mueble, es: "Balda interior mueble 19 mm", fr: "ETAGERE SUPPLEMENTAIRE épaisseur 19 mm", ancho: 900, fondo: 350, espesor: 19, opciones: balda}
+  - {codigo: ETCA9057, tipo: Baldas interiores mueble, es: "Balda interior mueble 19 mm", fr: "ETAGERE SUPPLEMENTAIRE épaisseur 19 mm", ancho: 900, fondo: 575, espesor: 19, opciones: balda}
+  - {codigo: ETCA12057, tipo: Baldas interiores mueble, es: "Balda interior mueble 19 mm", fr: "ETAGERE SUPPLEMENTAIRE épaisseur 19 mm", ancho: 1200, fondo: 575, espesor: 19, opciones: balda}
+  - {codigo: ETCAX9035, tipo: Baldas interiores mueble, es: "Balda interior mueble 19 mm", fr: "ETAGERE SUPPLEMENTAIRE épaisseur 19 mm", ancho: 900, fondo: 350, espesor: 19, opciones: balda}
+  - {codigo: ETCAX9057, tipo: Baldas interiores mueble, es: "Balda interior mueble 19 mm", fr: "ETAGERE SUPPLEMENTAIRE épaisseur 19 mm", ancho: 900, fondo: 575, espesor: 19, opciones: balda}
+  - {codigo: ETCAX259035, tipo: Baldas interiores mueble, es: "Balda interior mueble 25 mm", fr: "ETAGERE SUPPLEMENTAIRE épaisseur 25 mm", ancho: 900, fondo: 350, espesor: 25, opciones: balda}
+  - {codigo: ETEOV37, tipo: Baldas interiores mueble, es: "Balda interior variable", fr: "ETAGERE VARIABLE", fondo: 370, ancho_variable: {min: 1, max: 3000}, opciones: balda_variable}

@@ -13,6 +13,7 @@ import base64
 import json
 import pathlib
 import re
+import uuid
 
 import streamlit as st
 import yaml
@@ -168,6 +169,33 @@ _CONTEOS_EXTRAIBLES: dict[str, dict] = _ACCESORIOS_RAW.get("conteos_extraibles")
 # lista que la opción op_223 de opciones_mueble.yaml.
 _CODIGOS_OP223_INTERIOR: set[str] = set(_OPCIONES_RAW.get("op_223") or [])
 _ORGANIZADORES_EXCLUIDOS: set[str] = set(_ACCESORIOS_RAW.get("organizadores_excluidos") or [])
+
+
+# ── Piezas extra (frentes y baldas sueltos, añadidos a mano en el Paso 1) ──────
+# Fuente: data/piezas_extra.yaml. Las listas de valores (gamas, acabados,
+# colores) salen de mapeos_SKP_UI_SG.yaml, igual que para los muebles.
+_PIEZAS_EXTRA_PATH = pathlib.Path(__file__).parent / "data" / "piezas_extra.yaml"
+
+
+def _cargar_yaml(path: pathlib.Path) -> dict:
+    if not path.exists():
+        return {}
+    with path.open(encoding="utf-8") as f:
+        return yaml.safe_load(f) or {}
+
+
+_PIEZAS_EXTRA_RAW = _cargar_yaml(_PIEZAS_EXTRA_PATH)
+_PIEZAS_EXTRA: dict[str, dict] = {p["codigo"]: p for p in (_PIEZAS_EXTRA_RAW.get("piezas") or [])}
+_PX_GRUPOS: dict[str, dict] = _PIEZAS_EXTRA_RAW.get("grupos_opciones") or {}
+_DEL_CSV: dict = (_cargar_yaml(_MAPEOS_SKP_UI_SG_PATH).get("del_csv") or {})
+_PX_GAMAS: list[str] = [e["ui"] for e in (_DEL_CSV.get("op_100") or []) if e.get("ui")]
+_PX_ACABADOS_POR_GAMA: dict[str, list[str]] = {}
+for _e in (_DEL_CSV.get("op_101") or []):
+    _PX_ACABADOS_POR_GAMA.setdefault(str(_e.get("skp", "")).rsplit(" ", 1)[-1], []).append(_e["ui"])
+_PX_INTERIORES: list[str] = [e["ui"] for e in (_DEL_CSV.get("op_200") or []) if e.get("ui")]
+_PX_COLORES_SUPERFICIE: list[str] = [e["ui"] for e in (_DEL_CSV.get("op_301_superficie") or []) if e.get("ui")]
+# Round/Square: colores de madera; en LACA, además el color del frente.
+_PX_COLORES_INTEGRADO_FIJOS: list[str] = list(_PX_ACABADOS_POR_GAMA.get("WOOD") or [])
 _CUBOS_BASURA_CFG: dict = _ACCESORIOS_RAW.get("cubos_basura") or {}
 _CUBOS_BASURA_APLICA: set[str] = set(_CUBOS_BASURA_CFG.get("aplica_a") or [])
 _CUBOS_BASURA_CODIGOS: list[dict] = _CUBOS_BASURA_CFG.get("codigos") or []
@@ -268,6 +296,12 @@ def _electricos_disponibles(selecciones: dict) -> tuple[bool, int]:
             hay_220 = True
             if opc.get("op_222", "ninguno") not in (None, "ninguno"):
                 n_sensores += 1
+    # Piezas extra (frentes con recorte LED y sensor): un sensor por unidad.
+    for pieza in st.session_state.get("piezas_extra") or []:
+        if pieza.get("recorte_led"):
+            hay_220 = True
+            if pieza.get("sensor"):
+                n_sensores += int(pieza.get("cantidad") or 1)
     return hay_220, n_sensores
 
 
@@ -2294,6 +2328,236 @@ def _render_seccion_electricos(selecciones: dict) -> None:
         )
 
 
+def piezas_extra_pedido() -> list[dict]:
+    """Piezas extra añadidas en el Paso 1 (lo que app.py pasa a modulo_c)."""
+    return list(st.session_state.get("piezas_extra") or [])
+
+
+def _medidas_pieza_extra(cfg: dict) -> str:
+    """Texto de medidas de una pieza del catálogo para la UI."""
+    if cfg.get("ancho_variable") and cfg.get("alto_variable"):
+        return "ancho y alto a medida"
+    if cfg.get("ancho_variable"):
+        return f"ancho a medida × {cfg.get('fondo')} mm de fondo"
+    if "fondo" in cfg:
+        espesor = f" · {cfg['espesor']} mm de espesor" if cfg.get("espesor", 19) != 19 else ""
+        return f"{cfg['ancho']} × {cfg['fondo']} mm{espesor}"
+    return f"{cfg['ancho']} × {cfg['alto']} mm"
+
+
+def _resumen_pieza_extra(sel: dict) -> str:
+    """Opciones elegidas en lenguaje UI (sin códigos SG), para listado, Paso 2 y PDF."""
+    partes: list[str] = []
+    if sel.get("gama") and sel.get("acabado"):
+        partes.append(f"{sel['gama']} {sel['acabado']}")
+    elif sel.get("acabado"):
+        partes.append(f"Acabado {sel['acabado']}")
+    elif sel.get("gama"):
+        partes.append(sel["gama"])
+    if sel.get("interior"):
+        partes.append(f"Interior {sel['interior']}")
+    tirador = sel.get("tirador") or ""
+    if tirador:
+        texto = " ".join(p for p in (f"Tirador {tirador}", sel.get("color_tirador") or "") if p)
+        if tirador in ("Curve", "Line"):
+            texto += " (cajón)" if sel.get("tipo_frente") == "cajon" else " (puerta)"
+        partes.append(texto)
+    if sel.get("sin_mecanizado"):
+        partes.append("Sin mecanizado para tirador")
+    if sel.get("cajon_interior"):
+        partes.append("Cajón interior")
+    if sel.get("ancho_reducido"):
+        partes.append(f"Reducción de ancho a {sel['ancho_reducido']} mm")
+    if sel.get("recorte_led"):
+        partes.append("Recorte para perfil LED")
+        if sel.get("sensor"):
+            partes.append(f"Sensor para mando LED ({sel['sensor']})")
+    if sel.get("sin_encolar"):
+        partes.append("Sin encolar")
+    if sel.get("ancho") and sel.get("alto"):
+        partes.append(f"{sel['ancho']} × {sel['alto']} mm")
+    elif sel.get("ancho"):
+        partes.append(f"Ancho {sel['ancho']} mm")
+    return " · ".join(partes)
+
+
+def _px_controles_acabado(cfg: dict, grupo: dict, sel: dict, faltan: list[str]) -> None:
+    """Gama, acabado (op_100/op_101/op_410) y color interior (op_200)."""
+    oblig = set(grupo.get("obligatorias") or [])
+    if "op_100" in oblig:
+        sel["gama"] = st.selectbox("Gama", _PX_GAMAS, index=None, placeholder="Selecciona…", key="px_gama")
+        if not sel["gama"]:
+            faltan.append("la gama")
+    if "op_101" in oblig and sel.get("gama"):
+        sel["acabado"] = st.selectbox(
+            "Acabado del frente", _PX_ACABADOS_POR_GAMA.get(sel["gama"], []),
+            index=None, placeholder="Selecciona…", key=f"px_acabado_{sel['gama']}",
+        )
+        if not sel["acabado"]:
+            faltan.append("el acabado")
+    if "op_410" in oblig:
+        opciones = [
+            c for g in (grupo.get("gamas_op_410") or []) for c in _PX_ACABADOS_POR_GAMA.get(g, [])
+        ]
+        sel["acabado"] = st.selectbox("Acabado", opciones, index=None, placeholder="Selecciona…", key="px_acabado_410")
+        if not sel["acabado"]:
+            faltan.append("el acabado")
+    if "op_200" in oblig:
+        sel["interior"] = st.selectbox(
+            "Color interior", _PX_INTERIORES, index=None, placeholder="Selecciona…", key="px_interior",
+        )
+        if not sel["interior"]:
+            faltan.append("el color interior")
+
+
+def _px_controles_tirador(cfg: dict, grupo: dict, sel: dict, faltan: list[str]) -> None:
+    """Tirador (op_300 / op_217), color (op_301) y sin mecanizado (op_121)."""
+    if "op_300" not in set(grupo.get("obligatorias") or []):
+        return
+    fac = set(grupo.get("facultativas") or [])
+    tiradores = ["Round", "Square", "Curve", "Line", "Plantea"] + (["Touch Latch"] if "op_217" in fac else [])
+    sel["tirador"] = st.selectbox("Tirador", tiradores, index=None, placeholder="Selecciona…", key="px_tirador")
+    tirador = sel["tirador"] or ""
+    if not tirador:
+        faltan.append("el tirador")
+        return
+    if tirador in ("Curve", "Line"):
+        tipo = st.radio("El frente es de…", ["Puerta", "Cajón"], horizontal=True, key="px_tipo_frente")
+        sel["tipo_frente"] = "cajon" if tipo == "Cajón" else "puerta"
+    if tirador in ("Round", "Square"):
+        colores = _PX_COLORES_INTEGRADO_FIJOS + ([sel["acabado"]] if sel.get("gama") == "LACA" and sel.get("acabado") else [])
+    elif tirador in ("Curve", "Line", "Plantea"):
+        colores = _PX_COLORES_SUPERFICIE
+    else:
+        colores = []
+    if colores:
+        sel["color_tirador"] = st.selectbox(
+            "Color del tirador", colores, index=None, placeholder="Selecciona…",
+            key=f"px_color_tirador_{tirador}_{sel.get('acabado') or ''}",
+        )
+        if not sel["color_tirador"]:
+            faltan.append("el color del tirador")
+    if "op_121" in fac and tirador in ("Curve", "Line", "Plantea"):
+        forzado = tirador == "Plantea"   # Plantea lleva SPF siempre
+        sel["sin_mecanizado"] = st.checkbox(
+            "Sin mecanizado para tirador", value=forzado, disabled=forzado,
+            key=f"px_spf_{tirador}", help=_TOOLTIPS_OPCIONALES.get("op_121"),
+        ) or forzado
+
+
+def _px_controles_facultativos(cfg: dict, grupo: dict, sel: dict, faltan: list[str]) -> None:
+    """Cajón interior, reducción de ancho, LED, sin encolar y medidas variables."""
+    fac = set(grupo.get("facultativas") or [])
+    if "op_223" in fac:
+        sel["cajon_interior"] = st.checkbox("Cajón interior", key="px_cajon_interior")
+    if "op_231" in fac and cfg.get("ancho"):
+        ancho = int(cfg["ancho"])
+        r231 = ((_cargar_yaml(_REGLAS_PATH).get("modulo_c") or {}).get("op_231") or {})
+        minimo = max(int(r231.get("ancho_minimo_resultante_mm", 300)), ancho - int(r231.get("reduccion_maxima_mm", 299)))
+        if minimo < ancho:
+            if st.checkbox("Reducción de ancho", key="px_reduccion"):
+                sel["ancho_reducido"] = str(st.number_input(
+                    f"Ancho final (mm)  [{minimo}–{ancho - 1}]", min_value=minimo, max_value=ancho - 1,
+                    value=ancho - 1, step=1, key="px_ancho_reducido",
+                ))
+    if "op_220" in fac:
+        sel["recorte_led"] = st.checkbox("Recorte para perfil LED", key="px_recorte_led")
+        if sel["recorte_led"] and "op_222" in fac:
+            sensor = st.radio(
+                "Sensor para mando LED", ["Sin sensor", "Derecha", "Izquierda"], horizontal=True, key="px_sensor",
+            )
+            sel["sensor"] = "" if sensor == "Sin sensor" else sensor.lower()
+    if "op_700" in fac:
+        sel["sin_encolar"] = st.checkbox("Sin encolar", key="px_sin_encolar")
+    for campo, etiqueta in (("ancho", "Ancho"), ("alto", "Alto")):
+        rango = cfg.get(f"{campo}_variable")
+        if rango:
+            valor = st.number_input(
+                f"{etiqueta} (mm)", min_value=int(rango["min"]), max_value=int(rango["max"]),
+                value=None, step=1, placeholder="Introduce la medida", key=f"px_{campo}_{cfg['codigo']}",
+            )
+            sel[campo] = str(int(valor)) if valor else ""
+            if not valor:
+                faltan.append(f"el {etiqueta.lower()}")
+
+
+def _form_pieza_extra(piezas: list[dict]) -> None:
+    """Desplegable de tipo → pieza → opciones → cantidad → «Añadir pieza»."""
+    tipo = st.selectbox(
+        "Tipo de pieza", _PIEZAS_EXTRA_RAW.get("tipos") or [], index=None,
+        placeholder="Selecciona un tipo…", key="px_tipo",
+    )
+    if not tipo:
+        return
+    lista = [p for p in _PIEZAS_EXTRA.values() if p.get("tipo") == tipo]
+    codigo = st.selectbox(
+        "Pieza", [p["codigo"] for p in lista], index=None, placeholder="Selecciona una pieza…",
+        format_func=lambda c: f"{c} · {_PIEZAS_EXTRA[c]['es']} · {_medidas_pieza_extra(_PIEZAS_EXTRA[c])}",
+        key=f"px_pieza_{tipo}",
+    )
+    if not codigo:
+        return
+    cfg = _PIEZAS_EXTRA[codigo]
+    grupo = _PX_GRUPOS.get(cfg.get("opciones"), {})
+    sel: dict = {"codigo": codigo}
+    faltan: list[str] = []
+    col_a, col_b = st.columns(2)
+    with col_a:
+        _px_controles_acabado(cfg, grupo, sel, faltan)
+        _px_controles_tirador(cfg, grupo, sel, faltan)
+    with col_b:
+        _px_controles_facultativos(cfg, grupo, sel, faltan)
+        sel["cantidad"] = int(st.number_input("Cantidad", min_value=1, value=1, step=1, key="px_cantidad"))
+    if st.button(
+        "Añadir pieza", type="primary", disabled=bool(faltan), key="px_anadir",
+        help=("Falta elegir " + ", ".join(faltan) + ".") if faltan else None,
+    ):
+        sel = {k: v for k, v in sel.items() if v not in (None, "", False)}
+        sel["id"] = uuid.uuid4().hex
+        sel["resumen"] = _resumen_pieza_extra(sel)
+        piezas.append(sel)
+        st.rerun()
+
+
+def _listado_piezas_extra(piezas: list[dict]) -> None:
+    """Piezas añadidas: código, designación, opciones, cantidad editable y «Eliminar»."""
+    if not piezas:
+        st.caption("Todavía no has añadido ninguna pieza extra.")
+        return
+    st.markdown(f"**Piezas añadidas ({len(piezas)})**")
+    for pieza in list(piezas):
+        cfg = _PIEZAS_EXTRA.get(pieza["codigo"]) or {}
+        col_txt, col_cant, col_del = st.columns([6, 2, 1])
+        with col_txt:
+            st.markdown(f"**{pieza['codigo']}** · {cfg.get('es', '')}  \n{pieza.get('resumen', '')}")
+        with col_cant:
+            nueva = st.number_input(
+                "Cantidad", min_value=1, value=int(pieza.get("cantidad") or 1), step=1,
+                key=f"px_cant_{pieza['id']}",
+            )
+        with col_del:
+            st.write("")
+            borrar = st.button("Eliminar", key=f"px_del_{pieza['id']}")
+        if borrar:
+            piezas.remove(pieza)
+            st.rerun()
+        elif nueva != pieza.get("cantidad"):
+            pieza["cantidad"] = int(nueva)
+            st.rerun()
+
+
+def _render_seccion_piezas_extra() -> None:
+    """Sección «Piezas extra» del Paso 1 (estado en st.session_state.piezas_extra)."""
+    piezas = st.session_state.setdefault("piezas_extra", [])
+    st.divider()
+    st.subheader("Piezas extra")
+    st.caption(
+        "Frentes y baldas sueltos que no vienen en el CSV. Se añaden al final del pedido."
+    )
+    _form_pieza_extra(piezas)
+    _listado_piezas_extra(piezas)
+
+
 def _render_cabecera_global(
     muebles: list[dict],
     selecciones: dict,
@@ -2926,6 +3190,9 @@ def paso_1(muebles: list[dict]) -> None:
         for grupo_pu in grupos_rodapie_pu:
             _render_card_grupo_rodapie_pu(grupo_pu, catalogo)
 
+    # ── Piezas extra — frentes y baldas añadidos a mano ──────────────────────
+    _render_seccion_piezas_extra()
+
     # ── Accesorios eléctricos — globales, solo si algún mueble tiene op_220/222 ─
     _render_seccion_electricos(selecciones)
 
@@ -3402,6 +3669,7 @@ def generar_pdf_resumen(
         'Encimeras':                                  'Plans de travail',
         'Rodapies':                                   'Plinthes',
         'Accesorios electricos':                      'Accessoires electriques',
+        'Piezas extra':                               'Pieces supplementaires',
         'Frente':                                     'Facade',
         'Interior':                                   'Interieur',
         'Acabado':                                    'Finition',
@@ -3525,7 +3793,7 @@ def generar_pdf_resumen(
     # Las filas de accesorio (es_accesorio=True) se muestran dentro de la card
     # de su mueble padre (ver _resumen_accesorios_items), no como card propia.
     _pedido_completo = pedido
-    pedido = [e for e in pedido if not e.get("es_accesorio")]
+    pedido = [e for e in pedido if not e.get("es_accesorio") and not e.get("es_pieza_extra")]
     def _pdf_code(e): return (e.get('Código mueble') or '').strip()
     _pdf_norm = [e for e in pedido if _pdf_code(e) not in _CODIGOS_ENC_GRUPO and _pdf_code(e) not in CODIGOS_RODAPIE_SG]
     _pdf_enc  = [e for e in pedido if _pdf_code(e) in _CODIGOS_ENC_GRUPO]
@@ -3832,6 +4100,32 @@ def generar_pdf_resumen(
             for it in _elec_pdf
         ])
 
+    # ── Piezas extra — al final, una fila por pieza ──────────────────────
+    _px_pdf = [e for e in _pedido_completo if e.get("es_pieza_extra")]
+    if _px_pdf:
+        pdf.set_left_margin(MARGEN)
+        if (297 - 15) - pdf.get_y() < 30 + len(_px_pdf) * CELL_H * 2:
+            pdf.add_page()
+        else:
+            pdf.ln(8)
+        pdf.set_font(FONT_MAIN, 'B', FSZ_TITLE + 2)
+        pdf.cell(0, 8, _safe(_t('Piezas extra')), new_x='LMARGIN', new_y='NEXT')
+        pdf.set_draw_color(100, 100, 100)
+        pdf.line(MARGEN, pdf.get_y(), 210 - MARGEN, pdf.get_y())
+        pdf.set_draw_color(160, 160, 160)
+        pdf.ln(4)
+        for e in _px_pdf:
+            _cod = e.get('Código mueble', '')
+            _des = (e.get('p_item') or {}).get('p_item_label', '') if idioma == 'fr' else e.get('Descripción', '')
+            _q = _a_entero(e.get('Cantidad'))
+            pdf.set_font(FONT_MAIN, 'B', FSZ_BODY)
+            pdf.multi_cell(0, CELL_H, _safe(f"{_cod} - {_des} - {_q} {'ud.' if _q == 1 else 'uds.'}"),
+                           new_x='LMARGIN', new_y='NEXT')
+            if e.get('resumen_pieza'):
+                pdf.set_font(FONT_MAIN, '', FSZ_BODY)
+                pdf.multi_cell(0, CELL_H, _safe(e['resumen_pieza']), new_x='LMARGIN', new_y='NEXT')
+            pdf.ln(1)
+
     return bytes(pdf.output())
 
 
@@ -3854,7 +4148,7 @@ def paso_2(pedido: list[dict] | None) -> None:
     # mueble padre (ver _resumen_accesorios_items), no como card propia — se
     # excluyen solo de esta lista de renderizado, NUNCA de `pedido` en sí
     # (que sigue completo para el export JSON/PDF, más abajo en esta función).
-    _pedido_muebles = [e for e in pedido if not e.get("es_accesorio")]
+    _pedido_muebles = [e for e in pedido if not e.get("es_accesorio") and not e.get("es_pieza_extra")]
     st.success(f"Pedido listo: **{len(_pedido_muebles)} muebles** configurados.")
 
     def _code_p2(e): return (e.get("Código mueble") or "").strip()
@@ -3882,6 +4176,17 @@ def paso_2(pedido: list[dict] | None) -> None:
             _cant = it["cantidad"]
             _auto = "  ⚙ automático (uno por mueble con sensor)" if it["automatico"] else ""
             st.markdown(f"- **{it['etiqueta']}** ({it['codigo']}) — {_cant} {'ud.' if _cant == 1 else 'uds.'}{_auto}")
+
+    _px_p2 = [e for e in pedido if e.get("es_pieza_extra")]
+    if _px_p2:
+        st.subheader("Piezas extra")
+        for e in _px_p2:
+            _q = _a_entero(e.get("Cantidad"))
+            _res = f" — {e['resumen_pieza']}" if e.get("resumen_pieza") else ""
+            st.markdown(
+                f"- **{e.get('Código mueble', '')}** · {e.get('Descripción', '')}{_res} — "
+                f"{_q} {'ud.' if _q == 1 else 'uds.'}"
+            )
 
     st.divider()
 

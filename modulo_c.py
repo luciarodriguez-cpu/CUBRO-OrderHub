@@ -7,7 +7,7 @@ Input:  list[dict] — salida de modulo_b.construir_entrada_modulo_c()
         Acabado del mueble abierto, Summary). Valores en lenguaje UI (CLAUDE.md §9).
 
 Output principal:
-    calcular_opciones(entrada, electricos=None) → list[dict]   para paso_2 de Módulo B
+    calcular_opciones(entrada, electricos=None, piezas_extra=None) → list[dict]   para paso_2 de Módulo B
     generar_json_pedido(resultado) → list[dict]
     generar_excel_revision(resultado) → bytes (.xlsx)
 
@@ -41,6 +41,7 @@ _REGLAS_PATH     = _DATA_DIR / "reglas.yaml"
 _AVISOS_PATH     = _DATA_DIR / "avisos.yaml"
 _SCHEMA_PATH     = _DATA_DIR / "p_item_schema.yaml"
 _ACCESORIOS_PATH = _DATA_DIR / "accesorios.yaml"
+_PIEZAS_EXTRA_PATH = _DATA_DIR / "piezas_extra.yaml"
 
 
 # =============================================================================
@@ -85,6 +86,113 @@ def _cargar_accesorios() -> dict:
         return {}
     with _ACCESORIOS_PATH.open(encoding="utf-8") as f:
         return yaml.safe_load(f) or {}
+
+
+@functools.lru_cache(maxsize=1)
+def _cargar_piezas_extra() -> dict:
+    """Carga data/piezas_extra.yaml. Se cachea tras la primera llamada."""
+    if not _PIEZAS_EXTRA_PATH.exists():
+        return {}
+    with _PIEZAS_EXTRA_PATH.open(encoding="utf-8") as f:
+        return yaml.safe_load(f) or {}
+
+
+def _opciones_pieza_extra(sel: dict, grupo: dict, indices: dict) -> list[dict]:
+    """p_variant_options de una pieza extra a partir de lo elegido en el Paso 1.
+
+    `sel` es el dict que construye modulo_b (valores en lenguaje UI); `grupo`
+    el grupo de opciones de la pieza en piezas_extra.yaml. Solo se emiten las
+    opciones que el grupo permite.
+    """
+    permitidas = set(grupo.get("obligatorias") or []) | set(grupo.get("facultativas") or [])
+    opciones: list[dict] = []
+
+    def _add(op_id: str, codigo: str, param1: str | int = "0") -> None:
+        if codigo:
+            opciones.append(_opt(op_id.replace("op_", ""), codigo, param1))
+
+    tirador = (sel.get("tirador") or "").strip()
+    if "op_100" in permitidas:
+        _add("op_100", indices.get("op_100", {}).get(sel.get("gama") or "", ""))
+    if "op_101" in permitidas:
+        _add("op_101", indices.get("op_101", {}).get(sel.get("acabado") or "", ""))
+    if "op_410" in permitidas:
+        _add("op_410", indices.get("op_410", {}).get(sel.get("acabado") or "", ""))
+    if "op_200" in permitidas:
+        _add("op_200", indices.get("op_200", {}).get(sel.get("interior") or "", ""))
+    for op_id, codigo in (grupo.get("forzadas") or {}).items():
+        _add(op_id, str(codigo))
+    if "op_121" in permitidas and sel.get("sin_mecanizado"):
+        _add("op_121", "SPF")
+    if "op_217" in permitidas and tirador == "Touch Latch":
+        _add("op_217", "TL1")
+    if "op_220" in permitidas and sel.get("recorte_led"):
+        _add("op_220", "PRB")
+        if "op_222" in permitidas:
+            _add("op_222", {"derecha": "DTD", "izquierda": "DTG"}.get(sel.get("sensor") or "", ""))
+    if "op_223" in permitidas and sel.get("cajon_interior"):
+        _add("op_223", "TLH")
+    if "op_231" in permitidas and str(sel.get("ancho_reducido") or "").strip():
+        _add("op_231", "RL3", str(sel["ancho_reducido"]).strip())
+    if "op_300" in permitidas and tirador:
+        sg_300 = indices.get("op_300", {}).get(tirador, "")
+        if tirador in ("Curve", "Line"):
+            # El usuario elige si el frente es de puerta (H) o de cajón (C).
+            sufijo = "C" if sel.get("tipo_frente") == "cajon" else "H"
+            sg_300 = ("Q2" if tirador == "Curve" else "Q3") + sufijo
+        _add("op_300", sg_300)
+    if "op_301" in permitidas and tirador and tirador not in _TIRADORES_SIN_COLOR:
+        tabla = "op_301_integrado" if tirador in _TIRADORES_INTEGRADOS else "op_301_superficie"
+        _add("op_301", indices.get(tabla, {}).get(sel.get("color_tirador") or "", ""))
+    if "op_700" in permitidas and sel.get("sin_encolar"):
+        _add("op_700", "DEM")
+    return opciones
+
+
+def _lineas_piezas_extra(piezas: list[dict] | None, indices: dict, n_previas: int) -> list[dict]:
+    """Líneas de pedido de las piezas extra (sección "Piezas extra" del Paso 1).
+
+    Una línea por pieza añadida, al final del pedido. Medidas: fijas → 0,
+    variables (FVV, ETEOV37) → lo introducido por el usuario.
+    """
+    if not piezas:
+        return []
+    datos = _cargar_piezas_extra()
+    catalogo_px = {p["codigo"]: p for p in (datos.get("piezas") or [])}
+    grupos = datos.get("grupos_opciones") or {}
+    lineas: list[dict] = []
+    for sel in piezas:
+        cfg = catalogo_px.get((sel.get("codigo") or "").strip())
+        cantidad = _a_entero(sel.get("cantidad"))
+        if not cfg or cantidad <= 0:
+            continue
+        ancho = _a_entero(sel.get("ancho")) if cfg.get("ancho_variable") else 0
+        alto = _a_entero(sel.get("alto")) if cfg.get("alto_variable") else 0
+        lineas.append({
+            "Código mueble":        cfg["codigo"],
+            "Descripción":          cfg.get("es", ""),
+            "es_pieza_extra":       True,
+            "mueble_padre":         None,
+            "Cantidad":             str(cantidad),
+            "resumen_pieza":        sel.get("resumen", ""),
+            "opciones_adicionales": [],
+            "codigos_sg":           {},
+            "p_item": {
+                "p_ord_cat_code":   str((n_previas + len(lineas) + 1) * 10),
+                "p_item_code":      cfg["codigo"],
+                "p_item_label":     cfg.get("fr", ""),
+                "p_item_origin_id": None,
+                "p_quantity":       cantidad,
+                "p_hinge":          None,
+                "p_fastening":      None,
+                "p_width":          ancho,
+                "p_height":         alto,
+                "p_depth":          0,
+                "p_variant_options": _opciones_pieza_extra(sel, grupos.get(cfg.get("opciones"), {}), indices),
+            },
+            "avisos_c":             [],
+        })
+    return lineas
 
 
 def _calcular_accesorios_mueble(
@@ -606,7 +714,9 @@ def _calcular_opciones_mueble(
 # =============================================================================
 
 def calcular_opciones(
-    entrada: list[dict], electricos: dict[str, int] | None = None
+    entrada: list[dict],
+    electricos: dict[str, int] | None = None,
+    piezas_extra: list[dict] | None = None,
 ) -> list[dict]:
     """
     Módulo C — función principal.
@@ -615,6 +725,8 @@ def calcular_opciones(
             electricos — {código SG → cantidad} de la sección global
               "Accesorios eléctricos" del Paso 1 (opcional). Se añaden al
               final como líneas de accesorio sin mueble padre.
+            piezas_extra — piezas de la sección "Piezas extra" del Paso 1
+              (opcional). Van al final, después de muebles y accesorios.
     Output: list[dict] — pedido extendido para modulo_b.paso_2():
               · todos los campos originales de entrada
               · opciones_adicionales: list[dict] {etiqueta, valor, origen}
@@ -622,7 +734,7 @@ def calcular_opciones(
               · p_item:               dict en formato p_items de la API SG
               · avisos_c:             list[str] de códigos AV0x
     """
-    if not entrada:
+    if not entrada and not electricos and not piezas_extra:
         return []
 
     catalogo, mapeos, op_mueble, reglas = _cargar_datos()
@@ -827,6 +939,9 @@ def calcular_opciones(
     # No cuelgan de ningún mueble (mueble_padre = None).
     for acc in _lineas_electricos(electricos, accesorios):
         resultado.append(_linea_accesorio(acc, None, len(resultado)))
+
+    # ── Piezas extra — añadidas a mano en el Paso 1, al final del pedido ────
+    resultado.extend(_lineas_piezas_extra(piezas_extra, indices, len(resultado)))
 
     return resultado
 

@@ -88,6 +88,8 @@ def _hay_progreso() -> bool:
     for grupo in (st.session_state.get("rodapie_pu_grupos") or {}).values():
         if grupo.get("check"):
             return True
+    if st.session_state.get("piezas_extra"):
+        return True
     return any((st.session_state.get("accesorios_electricos") or {}).values())
 
 
@@ -261,7 +263,8 @@ def _calcular_pedido_paso_2() -> list[dict]:
     if USE_MOCK_C:
         return _mock_pedido(muebles, entrada)
     electricos = modulo_b.cantidades_electricos(selecciones)
-    return modulo_c.calcular_opciones(entrada, electricos) or []
+    piezas_extra = modulo_b.piezas_extra_pedido()
+    return modulo_c.calcular_opciones(entrada, electricos, piezas_extra) or []
 
 
 # Schema del output del Módulo A (ver CLAUDE.md §9).

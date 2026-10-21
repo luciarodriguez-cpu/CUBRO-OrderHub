@@ -144,7 +144,8 @@ CUBRO-skp/
 │   ├── p_item_schema.yaml      # Contrato JSON con Schmidt Groupe — estructura del p_item.
 │   ├── avisos.yaml             # Textos de los avisos de validación del Módulo A.
 │   ├── colores_mueble.yaml     # Paleta de colores de frente por gama.
-│   └── imagenes_mueble.yaml    # Rutas de imagen por mueble, sistema antiguo por prefijo (para UI).
+│   ├── imagenes_mueble.yaml    # Rutas de imagen por mueble, sistema antiguo por prefijo (para UI).
+│   └── piezas_extra.yaml       # 41 piezas sueltas (frentes y baldas) de la sección «Piezas extra» del Paso 1.
 ├── assets/
 │   ├── Logo CUBRO_positivo.png
 │   ├── muebles/                 # Imágenes genéricas por prefijo (sistema antiguo, ver imagenes_mueble.yaml). Fallback para elementos decorativos.
