@@ -161,11 +161,12 @@ def _lineas_piezas_extra(piezas: list[dict] | None, indices: dict, n_previas: in
     datos = _cargar_piezas_extra()
     catalogo_px = {p["codigo"]: p for p in (datos.get("piezas") or [])}
     grupos = datos.get("grupos_opciones") or {}
+    tipos_activos = set(datos.get("tipos") or [])   # p. ej. frentes bloqueados
     lineas: list[dict] = []
     for sel in piezas:
         cfg = catalogo_px.get((sel.get("codigo") or "").strip())
         cantidad = _a_entero(sel.get("cantidad"))
-        if not cfg or cantidad <= 0:
+        if not cfg or cantidad <= 0 or cfg.get("tipo") not in tipos_activos:
             continue
         ancho = _a_entero(sel.get("ancho")) if cfg.get("ancho_variable") else 0
         alto = _a_entero(sel.get("alto")) if cfg.get("alto_variable") else 0

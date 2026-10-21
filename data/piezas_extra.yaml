@@ -23,8 +23,11 @@
 
 
 # ── Tipos del desplegable (orden de la UI) ──────────────────────────────────
+# Solo los tipos de esta lista se ofrecen en el Paso 1 y salen en el JSON.
+# Frentes: BLOQUEADOS por ahora (Notion «Piezas extra», punto 7: falta que SG
+# confirme cómo se identifica un frente pedido suelto). Sus 28 piezas siguen
+# definidas abajo; para desbloquearlos basta con añadir «Frentes» a esta lista.
 tipos:
-  - Frentes
   - Baldas interiores mueble
 
 
