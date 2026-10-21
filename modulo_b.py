@@ -2500,6 +2500,8 @@ def _form_pieza_extra(piezas: list[dict]) -> None:
     if not codigo:
         return
     cfg = _PIEZAS_EXTRA[codigo]
+    if cfg.get("uso"):
+        st.info(f"**Para qué muebles:** {cfg['uso']}", icon="ℹ️")
     grupo = _PX_GRUPOS.get(cfg.get("opciones"), {})
     sel: dict = {"codigo": codigo}
     faltan: list[str] = []
@@ -2532,6 +2534,8 @@ def _listado_piezas_extra(piezas: list[dict]) -> None:
         col_txt, col_cant, col_del = st.columns([6, 2, 1])
         with col_txt:
             st.markdown(f"**{pieza['codigo']}** · {cfg.get('es', '')}  \n{pieza.get('resumen', '')}")
+            if cfg.get("uso"):
+                st.caption(f"Para: {cfg['uso']}")
         with col_cant:
             nueva = st.number_input(
                 "Cantidad", min_value=1, value=int(pieza.get("cantidad") or 1), step=1,
