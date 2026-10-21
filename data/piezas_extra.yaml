@@ -7,6 +7,8 @@
 # Fuente: encargo de Lucía (20/10/2026) + HBM_CubroxSchmidt_indice_D.xlsm →
 # "Ind. E_Pièces détachées" (designaciones FR y opciones por pieza).
 #
+# p_hinge: frentes G/D (obligatorio, lo elige el usuario) · baldas no llevan.
+# p_fastening: ninguna pieza lo lleva.
 # Medidas en el JSON (regla general del p_item, ver CLAUDE.md):
 #   medida fija → 0 (SG la conoce por el código) · medida variable → valor real.
 #   Solo FVV (ancho y alto) y ETEOV37 (ancho) envían medidas reales.
@@ -27,30 +29,34 @@ tipos:
 
 
 # ── Grupos de opciones ──────────────────────────────────────────────────────
+# Fuente: Notion «Piezas extra» (Fichas por elemento de catálogo), columna
+# «¿Se envía?». Solo están las opciones marcadas «Sí». Las marcadas «No, por
+# ahora» (pendientes de confirmar con SG) NO se ofrecen ni se envían:
+#   op_223 (TLH) y op_700 (DEM) en todos los frentes        → punto 1
+#   op_220 (PRB) y op_222 (DTD/DTG) en F45100                → punto 2
+#   op_200 (color de cuerpo) en F6013                        → punto 4
+# Si SG confirma alguna, se añade aquí y se empieza a enviar.
+#
 # obligatorias: el usuario tiene que elegirlas antes de añadir la pieza.
 # forzadas:     se envían siempre, con el valor indicado.
 # facultativas: el usuario puede activarlas.
+# apertura:     true → p_hinge obligatorio (G izquierda · D derecha).
 grupos_opciones:
-  frente:
+  frente:                 # frentes fijos, F45100 y F6013
+    apertura: true
     obligatorias: [op_100, op_101, op_300, op_301]
     forzadas: {op_206: FSP}
-    facultativas: [op_121, op_217, op_223, op_231, op_700]
-  frente_led:             # F45100: como frente + recorte LED y sensor
+    facultativas: [op_121, op_217, op_231]
+  frente_sin_tl1:         # F60100: como frente, sin Touch Latch (punto 3)
+    apertura: true
     obligatorias: [op_100, op_101, op_300, op_301]
     forzadas: {op_206: FSP}
-    facultativas: [op_121, op_217, op_220, op_222, op_223, op_231, op_700]
-  frente_sin_tl1:         # F60100: como frente, sin Touch Latch
-    obligatorias: [op_100, op_101, op_300, op_301]
-    forzadas: {op_206: FSP}
-    facultativas: [op_121, op_223, op_231, op_700]
-  frente_con_interior:    # F6013: como frente + color interior
-    obligatorias: [op_100, op_101, op_200, op_300, op_301]
-    forzadas: {op_206: FSP}
-    facultativas: [op_121, op_217, op_223, op_231, op_700]
+    facultativas: [op_121, op_231]
   frente_variable:        # FVV: como frente, sin reducción de ancho
+    apertura: true
     obligatorias: [op_100, op_101, op_300, op_301]
     forzadas: {op_206: FSP}
-    facultativas: [op_121, op_217, op_223, op_700]
+    facultativas: [op_121, op_217]
   balda:
     obligatorias: [op_100, op_200]
     forzadas: {op_203: E14}
@@ -75,12 +81,12 @@ piezas:
   - {codigo: F4540, tipo: Frentes, es: "Frente para elemento", fr: "FACADE", ancho: 446, alto: 396, opciones: frente}
   - {codigo: F4560, tipo: Frentes, es: "Frente para elemento", fr: "FACADE", ancho: 446, alto: 596, opciones: frente}
   - {codigo: F4580, tipo: Frentes, es: "Frente para elemento", fr: "FACADE", ancho: 446, alto: 796, opciones: frente}
-  - {codigo: F45100, tipo: Frentes, es: "Frente para elemento", fr: "FACADE", ancho: 446, alto: 996, opciones: frente_led}
+  - {codigo: F45100, tipo: Frentes, es: "Frente para elemento", fr: "FACADE", ancho: 446, alto: 996, opciones: frente}
   - {codigo: F45120, tipo: Frentes, es: "Frente para elemento", fr: "FACADE", ancho: 446, alto: 1196, opciones: frente}
   - {codigo: F45140, tipo: Frentes, es: "Frente para elemento", fr: "FACADE", ancho: 446, alto: 1396, opciones: frente}
   - {codigo: F45200, tipo: Frentes, es: "Frente para elemento", fr: "FACADE", ancho: 446, alto: 1996, opciones: frente}
   - {codigo: F45220, tipo: Frentes, es: "Frente para elemento", fr: "FACADE", ancho: 446, alto: 2196, opciones: frente}
-  - {codigo: F6013, tipo: Frentes, es: "Frente para elemento", fr: "FACADE", ancho: 596, alto: 126, opciones: frente_con_interior}
+  - {codigo: F6013, tipo: Frentes, es: "Frente para elemento", fr: "FACADE", ancho: 596, alto: 126, opciones: frente}
   - {codigo: F6020, tipo: Frentes, es: "Frente para elemento", fr: "FACADE", ancho: 596, alto: 196, opciones: frente}
   - {codigo: F6040, tipo: Frentes, es: "Frente para elemento", fr: "FACADE", ancho: 596, alto: 396, opciones: frente}
   - {codigo: F6060, tipo: Frentes, es: "Frente para elemento", fr: "FACADE", ancho: 596, alto: 596, opciones: frente}

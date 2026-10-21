@@ -296,12 +296,6 @@ def _electricos_disponibles(selecciones: dict) -> tuple[bool, int]:
             hay_220 = True
             if opc.get("op_222", "ninguno") not in (None, "ninguno"):
                 n_sensores += 1
-    # Piezas extra (frentes con recorte LED y sensor): un sensor por unidad.
-    for pieza in st.session_state.get("piezas_extra") or []:
-        if pieza.get("recorte_led"):
-            hay_220 = True
-            if pieza.get("sensor"):
-                n_sensores += int(pieza.get("cantidad") or 1)
     return hay_220, n_sensores
 
 
@@ -2348,6 +2342,8 @@ def _medidas_pieza_extra(cfg: dict) -> str:
 def _resumen_pieza_extra(sel: dict) -> str:
     """Opciones elegidas en lenguaje UI (sin códigos SG), para listado, Paso 2 y PDF."""
     partes: list[str] = []
+    if sel.get("apertura"):
+        partes.append(f"Apertura {sel['apertura'].lower()}")
     if sel.get("gama") and sel.get("acabado"):
         partes.append(f"{sel['gama']} {sel['acabado']}")
     elif sel.get("acabado"):
@@ -2411,7 +2407,13 @@ def _px_controles_acabado(cfg: dict, grupo: dict, sel: dict, faltan: list[str]) 
 
 
 def _px_controles_tirador(cfg: dict, grupo: dict, sel: dict, faltan: list[str]) -> None:
-    """Tirador (op_300 / op_217), color (op_301) y sin mecanizado (op_121)."""
+    """Apertura (p_hinge), tirador (op_300 / op_217), color (op_301) y sin mecanizado (op_121)."""
+    if grupo.get("apertura"):
+        sel["apertura"] = st.radio(
+            "Apertura", ["Izquierda", "Derecha"], index=None, horizontal=True, key="px_apertura",
+        )
+        if not sel["apertura"]:
+            faltan.append("la apertura")
     if "op_300" not in set(grupo.get("obligatorias") or []):
         return
     fac = set(grupo.get("facultativas") or [])

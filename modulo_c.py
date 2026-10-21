@@ -153,7 +153,8 @@ def _lineas_piezas_extra(piezas: list[dict] | None, indices: dict, n_previas: in
     """Líneas de pedido de las piezas extra (sección "Piezas extra" del Paso 1).
 
     Una línea por pieza añadida, al final del pedido. Medidas: fijas → 0,
-    variables (FVV, ETEOV37) → lo introducido por el usuario.
+    variables (FVV, ETEOV37) → lo introducido por el usuario. p_hinge solo
+    en frentes (G/D); p_fastening nunca.
     """
     if not piezas:
         return []
@@ -168,6 +169,9 @@ def _lineas_piezas_extra(piezas: list[dict] | None, indices: dict, n_previas: in
             continue
         ancho = _a_entero(sel.get("ancho")) if cfg.get("ancho_variable") else 0
         alto = _a_entero(sel.get("alto")) if cfg.get("alto_variable") else 0
+        grupo = grupos.get(cfg.get("opciones"), {})
+        # Frentes: p_hinge G/D obligatorio (apertura elegida por el usuario).
+        p_hinge = indices.get("apertura", {}).get(sel.get("apertura") or "") if grupo.get("apertura") else None
         lineas.append({
             "Código mueble":        cfg["codigo"],
             "Descripción":          cfg.get("es", ""),
@@ -183,12 +187,12 @@ def _lineas_piezas_extra(piezas: list[dict] | None, indices: dict, n_previas: in
                 "p_item_label":     cfg.get("fr", ""),
                 "p_item_origin_id": None,
                 "p_quantity":       cantidad,
-                "p_hinge":          None,
+                "p_hinge":          p_hinge,
                 "p_fastening":      None,
                 "p_width":          ancho,
                 "p_height":         alto,
                 "p_depth":          0,
-                "p_variant_options": _opciones_pieza_extra(sel, grupos.get(cfg.get("opciones"), {}), indices),
+                "p_variant_options": _opciones_pieza_extra(sel, grupo, indices),
             },
             "avisos_c":             [],
         })
