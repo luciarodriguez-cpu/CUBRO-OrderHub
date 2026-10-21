@@ -2334,8 +2334,7 @@ def _medidas_pieza_extra(cfg: dict) -> str:
     if cfg.get("ancho_variable"):
         return f"ancho a medida × {cfg.get('fondo')} mm de fondo"
     if "fondo" in cfg:
-        espesor = f" · {cfg['espesor']} mm de espesor" if cfg.get("espesor", 19) != 19 else ""
-        return f"{cfg['ancho']} × {cfg['fondo']} mm{espesor}"
+        return f"{cfg['ancho']} × {cfg['fondo']} mm"   # el espesor ya va en la designación
     return f"{cfg['ancho']} × {cfg['alto']} mm"
 
 
@@ -2494,7 +2493,10 @@ def _form_pieza_extra(piezas: list[dict]) -> None:
     lista = [p for p in _PIEZAS_EXTRA.values() if p.get("tipo") == tipo]
     codigo = st.selectbox(
         "Pieza", [p["codigo"] for p in lista], index=None, placeholder="Selecciona una pieza…",
-        format_func=lambda c: f"{c} · {_PIEZAS_EXTRA[c]['es']} · {_medidas_pieza_extra(_PIEZAS_EXTRA[c])}",
+        format_func=lambda c: (
+            f"{c} · {_PIEZAS_EXTRA[c]['es']} · {_medidas_pieza_extra(_PIEZAS_EXTRA[c])}"
+            + (f"  —  {_PIEZAS_EXTRA[c]['uso']}" if _PIEZAS_EXTRA[c].get("uso") else "")
+        ),
         key=f"px_pieza_{tipo}",
     )
     if not codigo:
