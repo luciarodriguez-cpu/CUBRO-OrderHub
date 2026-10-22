@@ -944,6 +944,11 @@ tapetas:
 # -----------------------------------------------------------------------------
 rodapiés:
   op_401_desde_acabado: true   # modulo_c lee "Acabado" y lo mapea como op_401
+  # alias_skp: nombres con los que SketchUp exporta un código → código del
+  # catálogo. El Módulo A los traduce al leer el CSV (Name SKP conserva el
+  # original). SketchUp exporta el rodapié de 7 cm como SOCX7 (22/10/2026).
+  alias_skp:
+    SOCX7: SOCX07
   codigos_skp:
     - SOCX10
     - SOCX07

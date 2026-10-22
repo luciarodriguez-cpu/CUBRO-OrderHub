@@ -235,6 +235,12 @@ CODIGOS_SIN_APERTURA |= CODIGOS_TAPETA
 CODIGOS_SIN_INTERIOR |= CODIGOS_TAPETA
 CODIGOS_SIN_RODAPIE  |= CODIGOS_TAPETA
 
+# Nombres con los que SketchUp exporta algunos códigos → código del catálogo
+# (opciones_mueble.yaml → rodapiés.alias_skp). Ej.: SOCX7 → SOCX07.
+_ALIAS_CODIGOS_SKP: dict[str, str] = dict(
+    ((_OPCIONES.get("rodapiés") or {}).get("alias_skp")) or {}
+)
+
 # Rodapiés (SOCX*): sin apertura, tirador, color interior ni patas.
 # op_401 viene de la columna "Acabado" del CSV (mismo índice que op_101).
 # El campo Ancho llega vacío desde SketchUp (la X del código sustituye el ancho).
@@ -581,6 +587,9 @@ def parsear_csv(archivo) -> dict:
         name_raw = _str_or_none(fila.get("Name", ""))
         if name_raw is None:
             continue
+        # Alias de SketchUp → código del catálogo (Name SKP conserva el original)
+        name_original = name_raw
+        name_raw = _ALIAS_CODIGOS_SKP.get(name_raw, name_raw)
 
         # I02 — Instalación → descarte silencioso
         if _es_instalacion(name_raw):
@@ -621,7 +630,7 @@ def parsear_csv(archivo) -> dict:
                         )
                 except ValueError:
                     pass
-        name_skp           = name_raw  # preservar Name original de SketchUp
+        name_skp           = name_original  # preservar Name original de SketchUp
         summary_raw        = _str_or_none(fila.get("Summary", ""))
 
         # Summary vacío → bloqueante (debe corregirse en SketchUp)
