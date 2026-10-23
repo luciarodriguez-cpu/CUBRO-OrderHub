@@ -2322,6 +2322,19 @@ def _render_seccion_electricos(selecciones: dict) -> None:
         )
 
 
+def _catalogo_piezas_extra() -> dict[str, dict]:
+    """Piezas extra con el formato de catalogo.json (designaciones y medidas
+    fijas), para que el PDF las pinte con las mismas reglas que un mueble."""
+    catalogo: dict[str, dict] = {}
+    for codigo, cfg in _PIEZAS_EXTRA.items():
+        entry: dict = {"designaciones": {"es": cfg.get("es", ""), "fr": cfg.get("fr", "")}}
+        for campo in ("ancho", "alto", "fondo"):
+            if cfg.get(campo):
+                entry[f"{campo}_mm"] = cfg[campo]
+        catalogo[codigo] = entry
+    return catalogo
+
+
 def piezas_extra_pedido() -> list[dict]:
     """Piezas extra añadidas en el Paso 1 (lo que app.py pasa a modulo_c)."""
     return list(st.session_state.get("piezas_extra") or [])
@@ -3315,6 +3328,9 @@ def _bloque_configuracion_c(entrada: dict, incluir_codigo_sg: bool = False) -> l
         gama_acabado = " ".join(p for p in (gama_cat, acabado) if p)
         if gama_acabado:
             items.append(("Acabado", gama_acabado))
+    elif entrada.get("es_pieza_extra") and (entrada.get("Acabado") or "").strip():
+        # Pieza extra con acabado de mueble abierto (ETEOV37)
+        items.append(("Acabado", (entrada.get("Acabado") or "").strip()))
     elif code in CODIGOS_RODAPIE:
         gama    = (entrada.get("Gama del frente") or "").strip()
         acabado = _ui_color_frente(entrada.get("Acabado") or "")
@@ -3348,6 +3364,9 @@ def _bloque_configuracion_c(entrada: dict, incluir_codigo_sg: bool = False) -> l
         rodapie = (entrada.get("Rodapié") or "").strip()
         if rodapie:
             items.append(("Rodapié", rodapie))
+    if entrada.get("es_pieza_extra"):
+        n = _a_entero(entrada.get("Cantidad"))
+        items.append(("Cantidad", f"{n} ud." if n == 1 else f"{n} uds."))
     return items
 
 
@@ -3801,14 +3820,42 @@ def generar_pdf_resumen(
     # Las filas de accesorio (es_accesorio=True) se muestran dentro de la card
     # de su mueble padre (ver _resumen_accesorios_items), no como card propia.
     _pedido_completo = pedido
+    catalogo = {**catalogo, **_catalogo_piezas_extra()}   # piezas extra con formato de catálogo
     pedido = [e for e in pedido if not e.get("es_accesorio") and not e.get("es_pieza_extra")]
     def _pdf_code(e): return (e.get('Código mueble') or '').strip()
     _pdf_norm = [e for e in pedido if _pdf_code(e) not in _CODIGOS_ENC_GRUPO and _pdf_code(e) not in CODIGOS_RODAPIE_SG]
     _pdf_enc  = [e for e in pedido if _pdf_code(e) in _CODIGOS_ENC_GRUPO]
     _pdf_rod  = [e for e in pedido if _pdf_code(e) in CODIGOS_RODAPIE_SG]
-    _pedido_pdf = _pdf_norm + _pdf_enc + _pdf_rod
+    _pdf_px   = [e for e in _pedido_completo if e.get("es_pieza_extra")]
+    _pedido_pdf = _pdf_norm + _pdf_enc + _pdf_rod + _pdf_px
     _enc_start  = len(_pdf_norm)
     _rod_start  = len(_pdf_norm) + len(_pdf_enc)
+    _px_start   = len(_pdf_norm) + len(_pdf_enc) + len(_pdf_rod)
+
+    def _render_electricos() -> None:
+        """Accesorios eléctricos: una línea por artículo, sin mueble padre."""
+        _elec_pdf = _items_electricos_pedido(_pedido_completo)
+        if not _elec_pdf:
+            return
+        pdf.set_left_margin(MARGEN)
+        if (297 - 15) - pdf.get_y() < 30 + len(_elec_pdf) * CELL_H:
+            pdf.add_page()
+        else:
+            pdf.ln(8)
+        pdf.set_font(FONT_MAIN, 'B', FSZ_TITLE + 2)
+        pdf.cell(0, 8, _safe(_t('Accesorios electricos')), new_x='LMARGIN', new_y='NEXT')
+        pdf.set_draw_color(100, 100, 100)
+        pdf.line(MARGEN, pdf.get_y(), 210 - MARGEN, pdf.get_y())
+        pdf.set_draw_color(160, 160, 160)
+        pdf.ln(4)
+        _render_tabla(pdf, [
+            (
+                _traducir_categoria_accesorio(it['etiqueta']) if idioma == 'fr' else it['etiqueta'],
+                f"{it['codigo']} - {it['cantidad']} {'ud.' if it['cantidad'] == 1 else 'uds.'}"
+                + (" [auto]" if it['automatico'] else ""),
+            )
+            for it in _elec_pdf
+        ])
 
     for i, entrada in enumerate(_pedido_pdf):
         code    = (entrada.get('Código mueble') or '').strip()
@@ -3819,11 +3866,14 @@ def generar_pdf_resumen(
 
         es_rodapie_sg = code in CODIGOS_RODAPIE_SG
 
-        # ── Cabecera de grupo al iniciar Encimeras o Rodapiés ────────────
+        # ── Cabecera de grupo al iniciar Encimeras, Rodapiés o Piezas extra ──
         _inicio_grupo = (
             (i == _enc_start and _pdf_enc) or
-            (i == _rod_start and _pdf_rod)
+            (i == _rod_start and _pdf_rod) or
+            (i == _px_start and _pdf_px)
         )
+        if i == _px_start and _pdf_px:
+            _render_electricos()   # accesorios eléctricos antes de las piezas extra
         if _inicio_grupo:
             pdf.set_left_margin(MARGEN)
             if i > 0:
@@ -3832,7 +3882,11 @@ def generar_pdf_resumen(
                     pdf.add_page()
                 else:
                     pdf.ln(8)
-            _g_nombre = 'Encimeras' if (i == _enc_start and _pdf_enc) else 'Rodapies'
+            _g_nombre = (
+                'Encimeras' if (i == _enc_start and _pdf_enc)
+                else 'Rodapies' if (i == _rod_start and _pdf_rod)
+                else 'Piezas extra'
+            )
             pdf.set_font(FONT_MAIN, 'B', FSZ_TITLE + 2)
             pdf.cell(0, 8, _safe(_t(_g_nombre)), new_x='LMARGIN', new_y='NEXT')
             pdf.set_draw_color(100, 100, 100)
@@ -4085,54 +4139,9 @@ def generar_pdf_resumen(
             if pdf.get_y() < y_min:
                 pdf.set_y(y_min)
 
-    # ── Accesorios eléctricos — una línea por artículo, sin mueble padre ──
-    _elec_pdf = _items_electricos_pedido(_pedido_completo)
-    if _elec_pdf:
-        pdf.set_left_margin(MARGEN)
-        if (297 - 15) - pdf.get_y() < 30 + len(_elec_pdf) * CELL_H:
-            pdf.add_page()
-        else:
-            pdf.ln(8)
-        pdf.set_font(FONT_MAIN, 'B', FSZ_TITLE + 2)
-        pdf.cell(0, 8, _safe(_t('Accesorios electricos')), new_x='LMARGIN', new_y='NEXT')
-        pdf.set_draw_color(100, 100, 100)
-        pdf.line(MARGEN, pdf.get_y(), 210 - MARGEN, pdf.get_y())
-        pdf.set_draw_color(160, 160, 160)
-        pdf.ln(4)
-        _render_tabla(pdf, [
-            (
-                _traducir_categoria_accesorio(it['etiqueta']) if idioma == 'fr' else it['etiqueta'],
-                f"{it['codigo']} - {it['cantidad']} {'ud.' if it['cantidad'] == 1 else 'uds.'}"
-                + (" [auto]" if it['automatico'] else ""),
-            )
-            for it in _elec_pdf
-        ])
-
-    # ── Piezas extra — al final, una fila por pieza ──────────────────────
-    _px_pdf = [e for e in _pedido_completo if e.get("es_pieza_extra")]
-    if _px_pdf:
-        pdf.set_left_margin(MARGEN)
-        if (297 - 15) - pdf.get_y() < 30 + len(_px_pdf) * CELL_H * 2:
-            pdf.add_page()
-        else:
-            pdf.ln(8)
-        pdf.set_font(FONT_MAIN, 'B', FSZ_TITLE + 2)
-        pdf.cell(0, 8, _safe(_t('Piezas extra')), new_x='LMARGIN', new_y='NEXT')
-        pdf.set_draw_color(100, 100, 100)
-        pdf.line(MARGEN, pdf.get_y(), 210 - MARGEN, pdf.get_y())
-        pdf.set_draw_color(160, 160, 160)
-        pdf.ln(4)
-        for e in _px_pdf:
-            _cod = e.get('Código mueble', '')
-            _des = (e.get('p_item') or {}).get('p_item_label', '') if idioma == 'fr' else e.get('Descripción', '')
-            _q = _a_entero(e.get('Cantidad'))
-            pdf.set_font(FONT_MAIN, 'B', FSZ_BODY)
-            pdf.multi_cell(0, CELL_H, _safe(f"{_cod} - {_des} - {_q} {'ud.' if _q == 1 else 'uds.'}"),
-                           new_x='LMARGIN', new_y='NEXT')
-            if e.get('resumen_pieza'):
-                pdf.set_font(FONT_MAIN, '', FSZ_BODY)
-                pdf.multi_cell(0, CELL_H, _safe(e['resumen_pieza']), new_x='LMARGIN', new_y='NEXT')
-            pdf.ln(1)
+    # Sin piezas extra, los accesorios eléctricos van al final del todo
+    if not _pdf_px:
+        _render_electricos()
 
     return bytes(pdf.output())
 

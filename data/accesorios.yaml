@@ -199,6 +199,37 @@ electricos_iluminacion:
     - {hasta_cm: 1000, sg: ZCONVLEDH100}
 
 
+# ── Descripción en el JSON (p_item_label de cada línea de accesorio) ────────
+# Fuente: Notion «Línea de pedido» → Líneas de accesorio («p_item_label con la
+# descripción del accesorio», ej. Z5PIED1 → "Pack 5 patas decorativas») y
+# ficha «Accesorios» (Fichas por elemento de catálogo). Añadido 23/10/2026.
+descripciones_json:
+  POUB2B42G:    "Cubo 2 compartimentos"
+  POUB3B31G:    "Cubo 3 compartimentos"
+  RCOU4557:     "Organizador de cubiertos simple"
+  RCOU6057:     "Organizador de cubiertos simple"
+  RCOU9057:     "Organizador de cubiertos simple"
+  ZSETTIR4557:  "Set Latitude (organizador + cubeta en U)"
+  ZSETTIR6057:  "Set Latitude (organizador + cubeta en U)"
+  ZSETTIR19057: "Set Latitude (organizador + cubeta en U)"
+  ZTACBT14535:  "Alfombrilla para cajones y bloques de cajones"
+  ZTACBT16035:  "Alfombrilla para cajones y bloques de cajones"
+  ZTACBT19035:  "Alfombrilla para cajones y bloques de cajones"
+  ZTACBT14557:  "Alfombrilla para cajones y bloques de cajones"
+  ZTACBT16057:  "Alfombrilla para cajones y bloques de cajones"
+  ZTACBT19057:  "Alfombrilla para cajones y bloques de cajones"
+  ZTACBT16047:  "Alfombrilla para cajones y bloques de cajones"
+  ZTACBT19047:  "Alfombrilla para cajones y bloques de cajones"
+  ZTAAQC14557:  "Alfombrilla para muebles AQC"
+  ZTAAQC16057:  "Alfombrilla para muebles AQC"
+  Z5PIED1:      "Pack 5 patas decorativas"
+  ZCONVLEDH30:  "Convertidor 30 W"
+  ZCONVLEDH60:  "Convertidor 60 W"
+  ZCONVLEDH100: "Convertidor 100 W"
+  ZDTM:         "Interruptor D-motion"
+  ZRAL200:      "Alargador LED 200 cm"
+
+
 # ── Traducciones FR por categoría (para el PDF) ──────────────────────────────
 traducciones_fr:
   "Cubo de basura":                        "Poubelle"

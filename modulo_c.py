@@ -173,15 +173,38 @@ def _lineas_piezas_extra(piezas: list[dict] | None, indices: dict, n_previas: in
         grupo = grupos.get(cfg.get("opciones"), {})
         # Frentes: p_hinge G/D obligatorio (apertura elegida por el usuario).
         p_hinge = indices.get("apertura", {}).get(sel.get("apertura") or "") if grupo.get("apertura") else None
+        opciones = _opciones_pieza_extra(sel, grupo, indices)
+        codigos = {f"op_{o['p_option']}": o["p_article"] for o in opciones}
+        ancho_red = str(sel.get("ancho_reducido") or "").strip()
+        opc_adic = []
+        if "op_121" in codigos:
+            opc_adic.append({"etiqueta": "Sin mecanizado para tirador", "valor": "SPF", "origen": "usuario"})
+        if "op_231" in codigos:
+            opc_adic.append({"etiqueta": "Reducción de ancho", "valor": "RL3", "origen": "usuario"})
+        es_abierto = "op_410" in (grupo.get("obligatorias") or [])
         lineas.append({
+            # Mismos campos que la fila de un mueble, para que Paso 2 y PDF la
+            # pinten con las mismas reglas (color interior con su código, etc.)
             "Código mueble":        cfg["codigo"],
             "Descripción":          cfg.get("es", ""),
+            "Summary":              "",
+            "Apertura":             sel.get("apertura", ""),
+            "Gama del frente":      "" if es_abierto else sel.get("gama", ""),
+            "Acabado del frente":   "" if es_abierto else sel.get("acabado", ""),
+            "Acabado":              sel.get("acabado", "") if es_abierto else "",
+            "Color interior":       sel.get("interior", ""),
+            "Tirador":              sel.get("tirador", ""),
+            "Color tirador":        sel.get("color_tirador", ""),
+            "Reducción de ancho":   "True" if ancho_red else "False",
+            "Ancho reducido":       ancho_red,
+            "Ancho CSV":            f"{ancho} mm" if ancho else "",
+            "Alto CSV":             f"{alto} mm" if alto else "",
             "es_pieza_extra":       True,
             "mueble_padre":         None,
             "Cantidad":             str(cantidad),
             "resumen_pieza":        sel.get("resumen", ""),
-            "opciones_adicionales": [],
-            "codigos_sg":           {},
+            "opciones_adicionales": opc_adic,
+            "codigos_sg":           codigos,
             "p_item": {
                 "p_ord_cat_code":   str((n_previas + len(lineas) + 1) * 10),
                 "p_item_code":      cfg["codigo"],
@@ -193,7 +216,7 @@ def _lineas_piezas_extra(piezas: list[dict] | None, indices: dict, n_previas: in
                 "p_width":          ancho,
                 "p_height":         alto,
                 "p_depth":          0,
-                "p_variant_options": _opciones_pieza_extra(sel, grupo, indices),
+                "p_variant_options": opciones,
             },
             "avisos_c":             [],
         })
@@ -962,7 +985,8 @@ def _linea_accesorio(acc: dict, mueble_padre: str | None, n_previas: int) -> dic
         "p_item": {
             "p_ord_cat_code":   str((n_previas + 1) * 10),
             "p_item_code":      acc["codigo"],
-            "p_item_label":     None,
+            # Descripción del accesorio (accesorios.yaml → descripciones_json)
+            "p_item_label":     (_cargar_accesorios().get("descripciones_json") or {}).get(acc["codigo"]),
             "p_item_origin_id": None,
             "p_quantity":       acc["cantidad"],
             "p_hinge":          None,
