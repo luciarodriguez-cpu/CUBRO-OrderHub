@@ -71,11 +71,12 @@ conteos_extraibles:
   AFSMOBT6020057: {cajones_clasicos: 1, bloques: 1, cajones_interiores: 0}
   AFSMOBT6022057: {cajones_clasicos: 1, bloques: 1, cajones_interiores: 0}
 
-  # AFS / AFS2B / AFSMO — sin nada fijo (el cajón interior es dinámico, ver op223)
+  # AFS / AFSMO — sin nada fijo (el cajón interior es dinámico, ver op223)
+  # AFS2B — 2 bloques de serie (índice D de SG: «2 BLOCS»), corregido 30/10/2026
   AFS6020057:    {cajones_clasicos: 0, bloques: 0, cajones_interiores: 0}
   AFS6022057:    {cajones_clasicos: 0, bloques: 0, cajones_interiores: 0}
-  AFS2B6020057:  {cajones_clasicos: 0, bloques: 0, cajones_interiores: 0}
-  AFS2B6022057:  {cajones_clasicos: 0, bloques: 0, cajones_interiores: 0}
+  AFS2B6020057:  {cajones_clasicos: 0, bloques: 2, cajones_interiores: 0}
+  AFS2B6022057:  {cajones_clasicos: 0, bloques: 2, cajones_interiores: 0}
   AFSMO6020057:  {cajones_clasicos: 0, bloques: 0, cajones_interiores: 0}
   AFSMO6022057:  {cajones_clasicos: 0, bloques: 0, cajones_interiores: 0}
 
